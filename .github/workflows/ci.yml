@@ -1,0 +1,74 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+
+jobs:
+  api-tests:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: gestoradv
+          POSTGRES_PASSWORD: gestoradv_dev
+          POSTGRES_DB: gestoradv_e2e
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U gestoradv -d gestoradv_e2e"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://gestoradv:gestoradv_dev@127.0.0.1:5432/gestoradv_e2e
+      MASTER_DATABASE_URL: postgresql://gestoradv:gestoradv_dev@127.0.0.1:5432/gestoradv_e2e_master
+      REDIS_URL: redis://127.0.0.1:6379
+      JWT_SECRET: ci-jwt-secret
+      ADMIN_JWT_SECRET: ci-admin-jwt-secret
+      NEXTAUTH_URL: http://localhost:3000
+      DEPLOYMENT_MODE: standalone
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Create e2e master database
+        run: |
+          sudo apt-get update -y && sudo apt-get install -y postgresql-client
+          PGPASSWORD=gestoradv_dev psql -h 127.0.0.1 -U gestoradv -d gestoradv_e2e -tc "SELECT 1 FROM pg_database WHERE datname = 'gestoradv_e2e_master'" | grep -q 1 || PGPASSWORD=gestoradv_dev psql -h 127.0.0.1 -U gestoradv -d gestoradv_e2e -c "CREATE DATABASE gestoradv_e2e_master;"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma clients
+        run: pnpm db:generate:all
+
+      - name: Unit tests (API)
+        run: pnpm test
+
+      - name: E2E tests (API)
+        run: pnpm test:e2e

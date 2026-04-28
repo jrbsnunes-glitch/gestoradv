@@ -1,0 +1,569 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== USUÁRIOS E AUTH ====================
+
+enum Role {
+  ADMIN
+  ADVOGADO
+  ESTAGIARIO
+  SECRETARIA
+  CLIENTE
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String
+  password      String?
+  role          Role      @default(CLIENTE)
+  oabNumber     String?   @map("oab_number")
+  oabState      String?   @map("oab_state")
+  phone         String?
+  avatarUrl     String?   @map("avatar_url")
+  isActive      Boolean   @default(true) @map("is_active")
+  emailVerified DateTime? @map("email_verified")
+  mfaEnabled    Boolean   @default(false) @map("mfa_enabled")
+  mfaSecret     String?   @map("mfa_secret")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  sessions       Session[]
+  clientProfile  Client?
+  processos      Processo[]       @relation("AdvogadoProcessos")
+  tarefas        Tarefa[]         @relation("ResponsavelTarefas")
+  documentos     Documento[]
+  auditLogs      AuditLog[]
+  notifications  Notification[]
+  lancamentos    Lancamento[]     @relation("LancamentoCriador")
+  contasPagar    ContaPagar[]     @relation("ContaPagarCriador")
+  atendimentos           Atendimento[]    @relation("AtendimentoResponsavel")
+  preferenciasAlerta     Json?            @default("{\"inapp\":true,\"email\":true,\"whatsapp\":true}") @map("preferencias_alerta")
+  percentualEscritorio   Int?             @default(70) @map("percentual_escritorio")
+  especialidades         String[]         @default([])
+
+  @@map("users")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique @map("session_token")
+  userId       String   @map("user_id")
+  expires      DateTime
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+// ==================== CLIENTES ====================
+
+model Client {
+  id           String   @id @default(cuid())
+  userId       String   @unique @map("user_id")
+  cpfCnpj      String?  @unique @map("cpf_cnpj")
+  birthDate    DateTime? @map("birth_date")
+  address      String?
+  city         String?
+  state        String?
+  zipCode      String?  @map("zip_code")
+  notes        String?
+  leadSource   String?  @map("lead_source")
+  leadScore    Int      @default(0) @map("lead_score")
+  consentLgpd  Boolean  @default(false) @map("consent_lgpd")
+  consentDate  DateTime? @map("consent_date")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  processos     Processo[]
+  lancamentos   Lancamento[]
+  atendimentos  Atendimento[]
+
+  @@map("clients")
+}
+
+// ==================== PROCESSOS ====================
+
+enum ProcessoStatus {
+  ATIVO
+  ARQUIVADO
+  SUSPENSO
+  ENCERRADO
+  EM_RECURSO
+}
+
+enum ProcessoResultado {
+  GANHO
+  PERDIDO
+  ACORDO
+  DESISTENCIA
+}
+
+enum AreaDireito {
+  TRABALHISTA
+  CIVIL
+  PENAL
+  FAMILIA
+  TRIBUTARIO
+  PREVIDENCIARIO
+  ADMINISTRATIVO
+  EMPRESARIAL
+  CONSUMIDOR
+  AMBIENTAL
+  OUTRO
+}
+
+model Processo {
+  id              String         @id @default(cuid())
+  numero          String         @unique
+  tribunal        String
+  vara            String?
+  comarca         String?
+  area            AreaDireito
+  status          ProcessoStatus @default(ATIVO)
+  valorCausa      Decimal?       @map("valor_causa") @db.Decimal(15, 2)
+  dataDistribuicao DateTime?     @map("data_distribuicao")
+  descricao            String?
+  advogadoId           String         @map("advogado_id")
+  clienteId            String         @map("cliente_id")
+  percentualEscritorio Int?           @map("percentual_escritorio")
+  resultado            ProcessoResultado?
+  concluidoEm          DateTime?      @map("concluido_em")
+  createdAt            DateTime       @default(now()) @map("created_at")
+  updatedAt            DateTime       @updatedAt @map("updated_at")
+
+  advogado     User          @relation("AdvogadoProcessos", fields: [advogadoId], references: [id])
+  cliente      Client        @relation(fields: [clienteId], references: [id])
+  movimentacoes Movimentacao[]
+  prazos       Prazo[]
+  documentos   Documento[]
+  tarefas      Tarefa[]
+  lancamentos  Lancamento[]
+
+  @@index([advogadoId])
+  @@index([clienteId])
+  @@index([status])
+  @@map("processos")
+}
+
+// ==================== MOVIMENTAÇÕES ====================
+
+model Movimentacao {
+  id          String   @id @default(cuid())
+  processoId  String   @map("processo_id")
+  data        DateTime
+  descricao   String
+  tipo        String?
+  fonte       String?
+  rawContent  String?  @map("raw_content")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  processo Processo @relation(fields: [processoId], references: [id], onDelete: Cascade)
+  prazos   Prazo[]
+
+  @@index([processoId])
+  @@index([data])
+  @@map("movimentacoes")
+}
+
+// ==================== PRAZOS ====================
+
+enum PrazoStatus {
+  PENDENTE
+  CUMPRIDO
+  PERDIDO
+  CANCELADO
+}
+
+enum PrazoUrgencia {
+  BAIXA
+  MEDIA
+  ALTA
+  CRITICA
+}
+
+model Prazo {
+  id              String       @id @default(cuid())
+  processoId      String       @map("processo_id")
+  movimentacaoId  String?      @map("movimentacao_id")
+  descricao       String
+  dataLimite      DateTime     @map("data_limite")
+  status          PrazoStatus  @default(PENDENTE)
+  urgencia        PrazoUrgencia @default(MEDIA)
+  alertas         Boolean      @default(true)
+  observacoes     String?
+  cumpridoEm       DateTime?    @map("cumprido_em")
+  alertaEnviadoEm  DateTime?    @map("alerta_enviado_em")
+  createdAt        DateTime     @default(now()) @map("created_at")
+  updatedAt        DateTime     @updatedAt @map("updated_at")
+
+  processo     Processo      @relation(fields: [processoId], references: [id], onDelete: Cascade)
+  movimentacao Movimentacao? @relation(fields: [movimentacaoId], references: [id])
+
+  @@index([processoId])
+  @@index([dataLimite])
+  @@index([status])
+  @@map("prazos")
+}
+
+// ==================== DOCUMENTOS ====================
+
+enum DocumentoTipo {
+  PETICAO_INICIAL
+  CONTESTACAO
+  RECURSO
+  MEMORIAIS
+  HABEAS_CORPUS
+  PROCURACAO
+  CONTRATO
+  PARECER
+  OUTRO
+}
+
+model Documento {
+  id          String        @id @default(cuid())
+  processoId  String?       @map("processo_id")
+  autorId     String        @map("autor_id")
+  titulo      String
+  tipo        DocumentoTipo @default(OUTRO)
+  conteudo    String?
+  fileUrl     String?       @map("file_url")
+  fileName    String?       @map("file_name")
+  fileMime    String?       @map("file_mime")
+  fileSize    Int?          @map("file_size")
+  versao      Int           @default(1)
+  geradoPorIa Boolean      @default(false) @map("gerado_por_ia")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  processo Processo? @relation(fields: [processoId], references: [id])
+  autor    User      @relation(fields: [autorId], references: [id])
+
+  @@index([processoId])
+  @@index([tipo])
+  @@map("documentos")
+}
+
+// ==================== TAREFAS ====================
+
+enum TarefaStatus {
+  PENDENTE
+  EM_ANDAMENTO
+  CONCLUIDA
+  CANCELADA
+}
+
+enum TarefaPrioridade {
+  BAIXA
+  MEDIA
+  ALTA
+  URGENTE
+}
+
+model Tarefa {
+  id             String           @id @default(cuid())
+  processoId     String?          @map("processo_id")
+  responsavelId  String           @map("responsavel_id")
+  titulo         String
+  descricao      String?
+  status         TarefaStatus     @default(PENDENTE)
+  prioridade     TarefaPrioridade @default(MEDIA)
+  dataLimite      DateTime?        @map("data_limite")
+  concluidaEm     DateTime?        @map("concluida_em")
+  alertaEnviadoEm DateTime?        @map("alerta_enviado_em")
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+
+  processo    Processo? @relation(fields: [processoId], references: [id])
+  responsavel User      @relation("ResponsavelTarefas", fields: [responsavelId], references: [id])
+
+  @@index([responsavelId])
+  @@index([status])
+  @@map("tarefas")
+}
+
+// ==================== NOTIFICAÇÕES ====================
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  title     String
+  message   String
+  type      String
+  read      Boolean  @default(false)
+  data      Json?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read])
+  @@map("notifications")
+}
+
+// ==================== ESCRITÓRIO (DADOS DA EMPRESA) ====================
+
+model Escritorio {
+  id              String   @id @default(cuid())
+  cnpj            String   @unique
+  razaoSocial     String   @map("razao_social")
+  nomeFantasia    String?  @map("nome_fantasia")
+  inscricaoEstadual String? @map("inscricao_estadual")
+  inscricaoMunicipal String? @map("inscricao_municipal")
+
+  // Endereço
+  endereco        String?
+  numero          String?
+  complemento     String?
+  bairro          String?
+  cidade          String?
+  estado          String?
+  cep             String?
+
+  // Contato
+  telefone        String?
+  celular         String?
+  email           String?
+  website         String?
+
+  // Dados profissionais
+  oabSocietaria   String?  @map("oab_societaria")
+  oabEstado       String?  @map("oab_estado")
+  areasPrincipais String?  @map("areas_principais")
+
+  // Dados bancários (para petições de custas)
+  banco           String?
+  agencia         String?
+  conta           String?
+  pixChave        String?  @map("pix_chave")
+
+  // Logo
+  logoUrl         String?  @map("logo_url")
+
+  // Integrações - WhatsApp Business API
+  whatsappBusinessId    String? @map("whatsapp_business_id")
+  whatsappAccessToken   String? @map("whatsapp_access_token")
+  whatsappPhoneNumberId String? @map("whatsapp_phone_number_id")
+  whatsappVerifyToken   String? @map("whatsapp_verify_token")
+
+  // Integrações - Tribunais / DATAJUD
+  datajudApiKey         String? @map("datajud_api_key")
+
+  // Integrações - Scraping (futuro)
+  proxyUrl              String? @map("proxy_url")
+  twocaptchaApiKey      String? @map("twocaptcha_api_key")
+
+  // Licença (revalidação a cada 30 dias)
+  licencaChave        String?  @unique @map("licenca_chave")
+  licencaValidade     DateTime? @map("licenca_validade")
+  licencaPlano        String?  @default("trial") @map("licenca_plano")
+  licencaAtiva        Boolean  @default(true) @map("licenca_ativa")
+  licencaUltimaValid  DateTime? @map("licenca_ultima_valid")
+  licencaHistorico    Json?    @map("licenca_historico")
+
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@map("escritorios")
+}
+
+// ==================== FINANCEIRO ====================
+
+enum LancamentoTipo {
+  HONORARIO
+  CUSTAS
+  DESPESA
+  REEMBOLSO
+  ACORDO
+  OUTRO
+}
+
+enum LancamentoStatus {
+  PENDENTE
+  PAGO
+  CANCELADO
+  VENCIDO
+}
+
+model Lancamento {
+  id            String            @id @default(cuid())
+  processoId    String?           @map("processo_id")
+  clienteId     String?           @map("cliente_id")
+  descricao     String
+  tipo          LancamentoTipo
+  status        LancamentoStatus  @default(PENDENTE)
+  valor         Decimal           @db.Decimal(15, 2)
+  dataVencimento DateTime?        @map("data_vencimento")
+  dataPagamento DateTime?         @map("data_pagamento")
+  formaPagamento String?          @map("forma_pagamento")
+  observacoes   String?
+  criadoPorId   String            @map("criado_por_id")
+  createdAt     DateTime          @default(now()) @map("created_at")
+  updatedAt     DateTime          @updatedAt @map("updated_at")
+
+  processo  Processo? @relation(fields: [processoId], references: [id])
+  cliente   Client?   @relation(fields: [clienteId], references: [id])
+  criadoPor User      @relation("LancamentoCriador", fields: [criadoPorId], references: [id])
+
+  @@index([processoId])
+  @@index([clienteId])
+  @@index([status])
+  @@index([dataVencimento])
+  @@map("lancamentos")
+}
+
+// ==================== CONTAS A PAGAR ====================
+
+enum ContaPagarCategoria {
+  ALUGUEL
+  CONDOMINIO
+  ENERGIA
+  AGUA
+  INTERNET
+  TELEFONE
+  MATERIAL_ESCRITORIO
+  SOFTWARE
+  CONTABILIDADE
+  SALARIOS
+  IMPOSTOS
+  SEGURO
+  MANUTENCAO
+  MARKETING
+  TRANSPORTE
+  ALIMENTACAO
+  OUTROS
+}
+
+enum ContaPagarRecorrencia {
+  UNICA
+  MENSAL
+  BIMESTRAL
+  TRIMESTRAL
+  SEMESTRAL
+  ANUAL
+}
+
+model ContaPagar {
+  id              String               @id @default(cuid())
+  descricao       String
+  categoria       ContaPagarCategoria
+  valor           Decimal              @db.Decimal(15, 2)
+  dataVencimento  DateTime             @map("data_vencimento")
+  dataPagamento   DateTime?            @map("data_pagamento")
+  status          LancamentoStatus     @default(PENDENTE)
+  formaPagamento  String?              @map("forma_pagamento")
+  recorrencia     ContaPagarRecorrencia @default(UNICA)
+  contaFixa       Boolean              @default(false) @map("conta_fixa")
+  fornecedor      String?
+  observacoes     String?
+  criadoPorId     String               @map("criado_por_id")
+  createdAt       DateTime             @default(now()) @map("created_at")
+  updatedAt       DateTime             @updatedAt @map("updated_at")
+
+  criadoPor User @relation("ContaPagarCriador", fields: [criadoPorId], references: [id])
+
+  @@index([status])
+  @@index([dataVencimento])
+  @@index([categoria])
+  @@index([contaFixa])
+  @@map("contas_pagar")
+}
+
+// ==================== ATENDIMENTOS ====================
+
+enum AtendimentoCanal {
+  WHATSAPP
+  FORMULARIO
+  EMAIL
+  TELEFONE
+}
+
+enum AtendimentoStatus {
+  NOVO
+  EM_ATENDIMENTO
+  RESPONDIDO
+  ENCERRADO
+  ARQUIVADO
+}
+
+enum MensagemRemetente {
+  CLIENTE
+  ADVOGADO
+  IA_SUGESTAO
+}
+
+model Atendimento {
+  id               String             @id @default(cuid())
+  nome             String
+  telefone         String?
+  email            String?
+  canal            AtendimentoCanal
+  assunto          String?
+  mensagemOriginal String             @map("mensagem_original") @db.Text
+  areaDetectada    String?            @map("area_detectada")
+  urgencia         Int?               @default(0)
+  complexidade     String?
+  status           AtendimentoStatus  @default(NOVO)
+  clienteId        String?            @map("cliente_id")
+  responsavelId    String?            @map("responsavel_id")
+  etapaBot         String?            @map("etapa_bot")
+  dadosBot         Json?              @map("dados_bot")
+  createdAt        DateTime           @default(now()) @map("created_at")
+  updatedAt        DateTime           @updatedAt @map("updated_at")
+
+  cliente     Client?               @relation(fields: [clienteId], references: [id])
+  responsavel User?                 @relation("AtendimentoResponsavel", fields: [responsavelId], references: [id])
+  mensagens   AtendimentoMensagem[]
+
+  @@index([status])
+  @@index([canal])
+  @@index([urgencia])
+  @@index([responsavelId])
+  @@index([clienteId])
+  @@index([createdAt])
+  @@map("atendimentos")
+}
+
+model AtendimentoMensagem {
+  id             String             @id @default(cuid())
+  atendimentoId  String             @map("atendimento_id")
+  remetente      MensagemRemetente
+  conteudo       String             @db.Text
+  enviadaVia     String?            @map("enviada_via")
+  createdAt      DateTime           @default(now()) @map("created_at")
+
+  atendimento Atendimento @relation(fields: [atendimentoId], references: [id], onDelete: Cascade)
+
+  @@index([atendimentoId])
+  @@index([createdAt])
+  @@map("atendimento_mensagens")
+}
+
+// ==================== AUDIT LOG (LGPD) ====================
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?  @map("user_id")
+  action     String
+  entity     String
+  entityId   String?  @map("entity_id")
+  oldData    Json?    @map("old_data")
+  newData    Json?    @map("new_data")
+  ip         String?
+  userAgent  String?  @map("user_agent")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([entity, entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}

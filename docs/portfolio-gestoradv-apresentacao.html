@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GestorAdv — Apresentação comercial</title>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --card: #1a2332;
+      --text: #e8eaed;
+      --muted: #9aa0a6;
+      --accent: #3b82f6;
+      --accent-soft: rgba(59, 130, 246, 0.15);
+      --border: #2d3748;
+      --table-head: #243044;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+      font-size: 15px;
+      line-height: 1.55;
+      color: var(--text);
+      background: var(--bg);
+    }
+
+    .wrap {
+      max-width: 820px;
+      margin: 0 auto;
+      padding: 2.5rem 1.5rem 4rem;
+    }
+
+    header {
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    h1 {
+      font-size: 1.85rem;
+      font-weight: 700;
+      margin: 0 0 0.35rem;
+      letter-spacing: -0.02em;
+    }
+
+    .subtitle {
+      font-size: 1.1rem;
+      color: var(--muted);
+      margin: 0 0 0.5rem;
+      font-weight: 400;
+    }
+
+    .tagline {
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    h2 {
+      font-size: 1.15rem;
+      margin: 2rem 0 0.75rem;
+      color: var(--text);
+      border-left: 3px solid var(--accent);
+      padding-left: 0.65rem;
+    }
+
+    h3 {
+      font-size: 1rem;
+      margin: 1.25rem 0 0.5rem;
+      color: #cbd5e1;
+    }
+
+    p {
+      margin: 0.65rem 0;
+      color: #c4c9d1;
+    }
+
+    ul {
+      margin: 0.5rem 0 1rem;
+      padding-left: 1.35rem;
+    }
+
+    li {
+      margin: 0.35rem 0;
+      color: #c4c9d1;
+    }
+
+    strong {
+      color: #e8eaed;
+    }
+
+    hr {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 2rem 0;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.25rem 1.35rem;
+      margin: 1rem 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+      margin: 0.75rem 0 1rem;
+    }
+
+    th,
+    td {
+      border: 1px solid var(--border);
+      padding: 0.55rem 0.65rem;
+      text-align: left;
+    }
+
+    th {
+      background: var(--table-head);
+      color: #e2e8f0;
+      font-weight: 600;
+    }
+
+    td {
+      background: rgba(26, 35, 50, 0.6);
+    }
+
+    .plans-section h2 {
+      margin-top: 0;
+    }
+
+    .plans-intro {
+      font-size: 0.9rem;
+      color: var(--muted);
+      margin-bottom: 1rem;
+    }
+
+    .footnote {
+      font-size: 0.82rem;
+      color: var(--muted);
+      margin-top: 1rem;
+    }
+
+    footer {
+      margin-top: 2.5rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border);
+      font-size: 0.9rem;
+    }
+
+    footer .brand {
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    footer .legal {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-top: 0.5rem;
+    }
+
+    .steps {
+      padding-left: 1.2rem;
+    }
+
+    .steps li {
+      margin: 0.5rem 0;
+    }
+
+    @media print {
+      body {
+        background: #fff;
+        color: #111;
+        font-size: 11pt;
+      }
+
+      .wrap {
+        max-width: 100%;
+        padding: 0.5cm 1cm 1cm;
+      }
+
+      h1,
+      h2,
+      h3,
+      strong,
+      .subtitle,
+      footer .brand {
+        color: #000;
+      }
+
+      p,
+      li,
+      .tagline,
+      .plans-intro {
+        color: #222;
+      }
+
+      .card {
+        background: #f8fafc;
+        border-color: #cbd5e1;
+      }
+
+      th {
+        background: #e2e8f0 !important;
+        color: #000 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+
+      td {
+        background: #fff !important;
+        color: #222;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+
+      h2 {
+        border-left-color: #2563eb;
+        page-break-after: avoid;
+      }
+
+      table {
+        page-break-inside: avoid;
+      }
+
+      header {
+        border-bottom-color: #ccc;
+      }
+
+      footer {
+        border-top-color: #ccc;
+      }
+
+      a {
+        color: #000;
+        text-decoration: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>GestorAdv</h1>
+      <p class="subtitle">Plataforma de gestão para escritórios de advocacia</p>
+      <p class="tagline"><strong>Documento de apresentação comercial e portfólio</strong> — versão para compartilhamento com clientes e prospects.</p>
+    </header>
+
+    <section>
+      <h2>Visão geral</h2>
+      <p>O <strong>GestorAdv</strong> é um sistema integrado para <strong>gestão de processos, clientes, prazos, finanças e atendimento</strong>, pensado para escritórios que desejam organizar a operação, reduzir riscos com prazos e ter visibilidade financeira, com opção de <strong>atendimento via WhatsApp</strong> e <strong>ferramentas de IA</strong> para produtividade.</p>
+      <p>A solução pode ser adotada em modelo <strong>SaaS</strong> ou <strong>instância dedicada</strong>, com <strong>isolamento de dados por escritório</strong> e <strong>controle de licenças</strong> centralizado para o fornecedor.</p>
+    </section>
+
+    <hr />
+
+    <section>
+      <h2>Principais funcionalidades</h2>
+
+      <h3>Gestão de processos e clientes</h3>
+      <ul>
+        <li>Cadastro completo de <strong>clientes</strong> com LGPD e fluxos de visualização, edição e exclusão conforme permissão.</li>
+        <li><strong>Processos</strong> com numeração, status, vínculo com cliente e <strong>advogado responsável</strong> (atribuição pelo administrador ou pelo fluxo de atendimento).</li>
+        <li><strong>Conclusão de processo</strong> com workflow: resultado (ganho, perdido, acordo, desistência) e geração automática de <strong>conta a receber</strong> quando aplicável.</li>
+        <li><strong>Edição</strong> de processos diretamente na lista e na tela de detalhe.</li>
+      </ul>
+
+      <h3>Prazos e tarefas</h3>
+      <ul>
+        <li>Cadastro e acompanhamento de <strong>prazos processuais</strong>.</li>
+        <li><strong>Tarefas</strong> com responsável (advogado), status em fluxo tipo Kanban, edição e vínculo ao processo.</li>
+        <li>Painel de <strong>prazos pendentes do processo</strong> ao criar/editar tarefa, para consulta e preenchimento manual da data limite.</li>
+        <li><strong>Alertas</strong> configuráveis (sistema, e-mail, WhatsApp) com antecedência para prazos e tarefas.</li>
+      </ul>
+
+      <h3>Financeiro</h3>
+      <ul>
+        <li><strong>Lançamentos</strong> (honorários, custas, despesas) e <strong>contas a pagar</strong> (despesas recorrentes e pontuais).</li>
+        <li><strong>Caixa do dia</strong> com entradas, saídas e saldo, com filtro por dia ou mês.</li>
+        <li><strong>Rateio escritório x advogado</strong> (percentuais configuráveis por advogado e por processo).</li>
+        <li>Relatórios com exportação e opções de impressão/PDF.</li>
+      </ul>
+
+      <h3>Dashboard e relatórios</h3>
+      <ul>
+        <li><strong>Dashboard</strong> com indicadores operacionais e financeiros (previsto x realizado).</li>
+        <li><strong>Relatórios</strong> com filtros por período e por advogado.</li>
+      </ul>
+
+      <h3>Escritório e documentos</h3>
+      <ul>
+        <li>Cadastro dos <strong>dados do escritório</strong> (endereço, OAB, contatos, dados bancários) para uso em documentos.</li>
+        <li><strong>Geração de peças com IA</strong> (quando habilitado e com chave de API configurada).</li>
+        <li><strong>Integrações por escritório</strong>: credenciais de <strong>WhatsApp Business</strong>, <strong>DATAJUD</strong> e parâmetros avançados (proxy, captcha) ficam sob responsabilidade e cadastro do cliente, na própria plataforma.</li>
+      </ul>
+
+      <h3>Advogados</h3>
+      <ul>
+        <li>Página dedicada de <strong>gestão de advogados</strong> (OAB, especialidades, percentuais, status).</li>
+        <li>Filtros e relatórios financeiros <strong>por advogado</strong>.</li>
+      </ul>
+
+      <h3>Atendimento e WhatsApp</h3>
+      <ul>
+        <li><strong>Inbox de atendimentos</strong>: foco em dúvidas que chegam de canais externos.</li>
+        <li><strong>Bot inteligente no WhatsApp</strong> (com integração Meta configurada): triagem, pré-cadastro de lead, consulta de processo para cliente identificado, encaminhamento ao advogado.</li>
+        <li><strong>Alertas multicanal</strong> para advogados e, quando aplicável, comunicação com clientes.</li>
+      </ul>
+
+      <h3>Integração com tribunais (evolução)</h3>
+      <ul>
+        <li>Arquitetura preparada para <strong>conectores</strong> a sistemas judiciais (ex.: DATAJUD API pública), com endpoint interno para consulta de prazos e movimentações.</li>
+      </ul>
+
+      <h3>Multi-tenant e licenças</h3>
+      <ul>
+        <li>Registro de escritórios, <strong>planos</strong>, <strong>licenças</strong> e painel administrativo para gestão centralizada.</li>
+        <li>Modelo compatível com <strong>instalação dedicada</strong> ou <strong>nuvem multi-escritório</strong>.</li>
+      </ul>
+    </section>
+
+    <hr />
+
+    <section>
+      <h2>Benefícios para o escritório</h2>
+      <div class="card">
+        <table>
+          <thead>
+            <tr>
+              <th>Benefício</th>
+              <th>Descrição</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Organização</strong></td>
+              <td>Um só lugar para processos, clientes, prazos e finanças.</td>
+            </tr>
+            <tr>
+              <td><strong>Redução de risco</strong></td>
+              <td>Alertas e visão de prazos e tarefas com responsáveis definidos.</td>
+            </tr>
+            <tr>
+              <td><strong>Transparência financeira</strong></td>
+              <td>Caixa, contas a pagar, rateio e relatórios.</td>
+            </tr>
+            <tr>
+              <td><strong>Atendimento moderno</strong></td>
+              <td>Canal WhatsApp alinhado ao fluxo jurídico e à inbox interna.</td>
+            </tr>
+            <tr>
+              <td><strong>Escalabilidade</strong></td>
+              <td>Planos que acompanham o crescimento do escritório.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <hr />
+
+    <section class="plans-section">
+      <h2>Planos de assinatura</h2>
+      <p class="plans-intro">Valores de referência para <strong>setup único</strong> (configuração inicial) e <strong>mensalidade</strong>. Os limites operacionais (usuários, processos, armazenamento) seguem a tabela do produto; confirme sempre a proposta comercial vigente.</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Plano</th>
+            <th>Setup</th>
+            <th>Mensalidade</th>
+            <th>Destaques</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Trial</strong></td>
+            <td>R$ 0,00</td>
+            <td>R$ 0,00</td>
+            <td>Avaliação; conhecer a plataforma.</td>
+          </tr>
+          <tr>
+            <td><strong>Básico</strong></td>
+            <td>R$ 890,00</td>
+            <td>R$ 297,00</td>
+            <td>Funcionalidades essenciais de gestão.</td>
+          </tr>
+          <tr>
+            <td><strong>Profissional</strong></td>
+            <td>R$ 1.690,00</td>
+            <td>R$ 447,00</td>
+            <td>Inclui <strong>WhatsApp</strong> e <strong>IA</strong> no escopo do plano.</td>
+          </tr>
+          <tr>
+            <td><strong>Enterprise</strong></td>
+            <td>R$ 2.500,00</td>
+            <td>R$ 697,00</td>
+            <td>Capacidade ampliada; suporte dedicado conforme contrato.</td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="footnote">O <strong>setup</strong> cobre configuração inicial e parametrização. A <strong>mensalidade</strong> mantém acesso, atualizações e nível de serviço acordado. WhatsApp e IA dependem do plano e da configuração de credenciais pelo escritório (Meta, APIs externas).</p>
+    </section>
+
+    <hr />
+
+    <section>
+      <h2>Próximos passos</h2>
+      <ol class="steps">
+        <li>Agendar <strong>demonstração</strong> guiada do sistema.</li>
+        <li>Definir <strong>plano</strong> e modelo de implantação (SaaS ou dedicado).</li>
+        <li>Formalizar <strong>contrato</strong> e cronograma de <strong>setup</strong> e go-live.</li>
+      </ol>
+    </section>
+
+    <footer>
+      <p class="brand">GestorAdv — gestão jurídica com visão de negócio.</p>
+      <p class="legal">Documento para apresentação comercial. Valores e condições finais constam da proposta ou contrato formal.</p>
+    </footer>
+  </div>
+</body>
+</html>

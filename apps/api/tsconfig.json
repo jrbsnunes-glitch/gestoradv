@@ -1,0 +1,15 @@
+{
+  "extends": "@gestor-adv/tsconfig/nestjs.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "baseUrl": "./",
+    "strictPropertyInitialization": false,
+    "paths": {
+      "@/*": ["./src/*"],
+      "@master-db": ["../../packages/database/generated/master"],
+      "@master-db/*": ["../../packages/database/generated/master/*"]
+    }
+  },
+  "include": ["src/**/*"],
+  "exclude": ["src/**/*.spec.ts", "src/**/*.test.ts"]
+}

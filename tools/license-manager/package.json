@@ -1,0 +1,17 @@
+{
+  "name": "gestoradv-license-manager",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Ferramenta externa para gerar e validar licenças do GestorAdv",
+  "main": "license-manager.js",
+  "scripts": {
+    "start": "node license-manager.js",
+    "generate": "node license-manager.js generate",
+    "validate": "node license-manager.js validate",
+    "list": "node license-manager.js list",
+    "revoke": "node license-manager.js revoke"
+  },
+  "dependencies": {
+    "pg": "^8.20.0"
+  }
+}

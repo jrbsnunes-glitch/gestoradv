@@ -1,0 +1,5 @@
+{
+  "extends": "@gestor-adv/tsconfig/base.json",
+  "compilerOptions": { "outDir": "dist", "rootDir": "src" },
+  "include": ["src"]
+}

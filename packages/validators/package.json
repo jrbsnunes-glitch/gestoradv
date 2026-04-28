@@ -1,0 +1,13 @@
+{
+  "name": "@gestor-adv/validators",
+  "version": "0.0.1",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "dependencies": {
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@gestor-adv/tsconfig": "workspace:*"
+  }
+}

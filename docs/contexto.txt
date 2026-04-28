@@ -1,0 +1,547 @@
+Você é um desenvolvedor sênior especializado em sistemas jurídicos complexos. Estou desenvolvendo um sistema gerenciador autônomo para escritórios de advocacia com múltiplas funcionalidades de automação e IA. O sistema deve ser robusto, escalável e em conformidade com a LGPD.
+Stack Tecnológica Recomendada
+Backend
+
+Linguagem: TypeScript com Node.js 20+ LTS
+Framework: NestJS 10.x (arquitetura modular, injeção de dependências, decorators)
+
+Documentação: https://docs.nestjs.com/
+
+
+API: REST + GraphQL (Apollo Server) para flexibilidade
+
+REST: operações CRUD padrão
+GraphQL: consultas complexas e subscrições em tempo real
+
+
+Banco de Dados:
+
+PostgreSQL 16+ (dados estruturados, processos, clientes, prazos)
+Redis 7+ (cache, filas, sessões)
+MongoDB 7+ (logs de chatbot, conversas, documentos não estruturados)
+
+
+ORM: Prisma 5.x (type-safe, migrations, múltiplos databases)
+
+Documentação: https://www.prisma.io/docs/
+
+
+
+Frontend
+
+Framework: Next.js 14+ (App Router)
+
+Documentação: https://nextjs.org/docs
+Server Components para performance
+Streaming SSR para carregamento progressivo
+
+
+UI Framework:
+
+shadcn/ui (componentes acessíveis, customizáveis)
+Tailwind CSS 3.x (estilização utilitária)
+Radix UI (primitivos acessíveis)
+
+
+Gerenciamento de Estado:
+
+Zustand (global state leve)
+TanStack Query v5 (cache de dados server-side)
+
+
+Formulários: React Hook Form + Zod (validação type-safe)
+
+Mobile (Aplicativo Híbrido)
+
+Framework: React Native 0.73+ com Expo SDK 50+
+
+Documentação: https://docs.expo.dev/
+Expo Router (navegação file-based)
+Expo Notifications (push notifications)
+
+
+UI: React Native Paper + Tamagui (cross-platform design system)
+Code Sharing: Monorepo com Turborepo compartilhando lógica entre web/mobile
+
+IA e Automação
+LLM Integration
+
+Provider Principal: Anthropic Claude 4.6 (raciocínio complexo, contexto extenso)
+
+SDK: @anthropic-ai/sdk v0.20+
+Documentação: https://docs.anthropic.com/
+
+
+Provider Secundário: OpenAI GPT-4 Turbo (fallback)
+Orchestration: LangChain.js 0.1.x ou LlamaIndex.TS
+
+Documentação LangChain: https://js.langchain.com/docs/
+Templates para RAG, agents, chains
+
+
+
+Processamento de Documentos
+
+OCR: Tesseract.js + Azure Document Intelligence (intimações escaneadas)
+
+Documentação Azure: https://learn.microsoft.com/azure/ai-services/document-intelligence/
+
+
+PDF Processing: pdf-parse, pdf-lib (extração e manipulação)
+Vector Database: Pinecone ou Qdrant (embeddings de jurisprudência)
+
+Documentação Pinecone: https://docs.pinecone.io/
+
+
+
+Web Scraping (Tribunais)
+
+Framework: Playwright 1.40+ (automação confiável de navegadores)
+
+Documentação: https://playwright.dev/
+Suporte a captchas com 2captcha integration
+
+
+Alternativa: Puppeteer + Puppeteer-extra (stealth mode)
+Parser: Cheerio (extração de dados HTML)
+
+Integrações de Comunicação
+WhatsApp Business
+
+API Oficial: Meta WhatsApp Business API
+
+Documentação: https://developers.facebook.com/docs/whatsapp/
+
+
+SDK: whatsapp-web.js (fallback para testes)
+Webhook Handler: Express middleware customizado
+
+Email
+
+SMTP: Nodemailer com templates EJS/Handlebars
+Transacional: SendGrid ou Resend (deliverability)
+
+Documentação SendGrid: https://docs.sendgrid.com/
+
+
+
+Calendário
+
+Google Calendar API: integração para agendamentos
+
+Documentação: https://developers.google.com/calendar/api/
+
+
+Alternativa: Calendly webhooks
+
+Marketing e Captação
+Anúncios e Landing Pages
+
+Google Ads API: conversões e remarketing
+
+Documentação: https://developers.google.com/google-ads/api/
+
+
+Meta Ads API: Facebook/Instagram campaigns
+
+Documentação: https://developers.facebook.com/docs/marketing-apis/
+
+
+Analytics: Google Analytics 4 + Tag Manager
+A/B Testing: Vercel Edge Middleware (split testing)
+
+Infraestrutura e DevOps
+Hospedagem
+
+Backend: Railway/Render (Node.js deployment fácil) ou AWS ECS
+Frontend: Vercel (otimizado para Next.js)
+Database: Supabase (PostgreSQL gerenciado) ou AWS RDS
+Redis: Upstash (serverless Redis)
+
+Containerização
+
+Docker: multi-stage builds
+Orquestração: Docker Compose (dev) / Kubernetes (produção)
+
+CI/CD
+
+Pipeline: GitHub Actions
+
+Testes automatizados (Jest, Vitest, Playwright)
+Linting (ESLint, Prettier)
+Type checking (TypeScript strict mode)
+Deploy automático
+
+
+
+Monitoramento
+
+APM: Sentry (error tracking)
+
+Documentação: https://docs.sentry.io/
+
+
+Logs: Winston + Logtail/Axiom
+Metrics: Prometheus + Grafana (opcional)
+
+Segurança e Conformidade
+Autenticação
+
+Framework: NextAuth.js v5 (Auth.js)
+
+Documentação: https://authjs.dev/
+
+
+Providers: Email Magic Links, Google OAuth, OAB.br (se disponível)
+MFA: TOTP via @otplib/preset-default
+
+Autorização
+
+RBAC: Prisma + middleware customizado
+Permissões: CASL (isomorphic authorization)
+
+Documentação: https://casl.js.org/
+
+
+
+LGPD Compliance
+
+Criptografia: bcrypt (senhas), crypto-js (dados sensíveis)
+Audit Log: registro de todas operações em dados pessoais
+Consentimento: sistema de opt-in/opt-out
+Data Retention: políticas de exclusão automática
+
+Segurança Adicional
+
+Rate Limiting: express-rate-limit + Redis
+CORS: helmet.js (security headers)
+Input Validation: Zod schemas em todas APIs
+SQL Injection Protection: Prisma (prepared statements)
+
+Arquitetura do Sistema
+Design Patterns
+
+Microservices (opcional para escala): comunicação via RabbitMQ/Kafka
+CQRS: separação de comandos e queries (MediatR pattern)
+Event Sourcing: histórico completo de mudanças processuais
+Repository Pattern: abstração de acesso a dados
+
+Estrutura de Pastas (Monorepo)
+/
+├── apps/
+│   ├── web/                 # Next.js app
+│   ├── mobile/              # React Native app
+│   └── api/                 # NestJS backend
+├── packages/
+│   ├── ui/                  # Componentes compartilhados
+│   ├── database/            # Prisma schema
+│   ├── tsconfig/            # TypeScript configs
+│   └── validators/          # Zod schemas compartilhados
+└── services/
+    ├── chatbot/             # IA conversacional
+    ├── scraper/             # Raspagem de tribunais
+    └── document-generator/  # Geração de peças
+Módulos do Sistema
+1. Assistente de Triagem de Clientes
+Tecnologias Específicas:
+
+Chatbot: Vercel AI SDK + Claude 4.6
+
+Documentação: https://sdk.vercel.ai/docs
+
+
+Interface: React Flow (fluxos visuais de conversação)
+NLP: biblioteca compromise (análise de texto em português)
+Database: MongoDB (armazena conversas completas)
+
+Funcionalidades:
+
+Identificação automática de área do direito via embeddings
+Scoring de viabilidade (0-100) usando Claude
+Integração com calendário para agendamento
+Formulário progressivo (coleta dados aos poucos)
+
+Prompts Recomendados:
+typescript// Exemplo de system prompt para triagem
+const TRIAGEM_SYSTEM_PROMPT = `
+Você é um assistente jurídico especializado em triagem de casos.
+Sua função é:
+1. Identificar a área do direito (trabalhista, civil, penal, família, etc.)
+2. Avaliar urgência (0-10)
+3. Estimar complexidade (baixa, média, alta)
+4. Determinar viabilidade inicial
+
+Faça perguntas objetivas e empáticas. Use linguagem acessível.
+Ao final, forneça um JSON com:
+{
+  "area": string,
+  "urgencia": number,
+  "complexidade": "baixa" | "media" | "alta",
+  "viabilidade": number,
+  "razao": string
+}
+`;
+2. Monitor Automático de Prazos Processuais
+Tecnologias Específicas:
+
+Scraping: Playwright com rotating proxies
+Scheduling: BullMQ (filas robustas com Redis)
+
+Documentação: https://docs.bullmq.io/
+
+
+Notificações:
+
+Push: OneSignal ou Firebase Cloud Messaging
+Email: templates com MJML
+WhatsApp: mensagens programadas
+
+
+
+Sistemas Judiciais a Integrar:
+
+Projudi: scraping via Playwright (não tem API oficial)
+PJe: API SOAP (usar soap package do npm)
+
+Documentação: https://www.pje.jus.br/wiki/
+
+
+e-SAJ: scraping + OCR para PDF de intimações
+
+Arquitetura de Monitoramento:
+typescript// Job de monitoramento (BullMQ)
+interface MonitoramentoJob {
+  processoId: string;
+  tribunal: 'projudi' | 'pje' | 'esaj';
+  numeroProcesso: string;
+  ultimaAtualizacao: Date;
+}
+
+// Worker processa em background
+const monitorWorker = new Worker('monitoramento', async (job) => {
+  const intimacoes = await scrapeTribunal(job.data);
+  const prazos = await extrairPrazosComIA(intimacoes);
+  await salvarPrazos(prazos);
+  await enviarAlertas(prazos);
+});
+Sistema de Alertas Escalonados:
+
+Criar cron jobs com node-cron ou BullMQ repeatable jobs
+7 dias antes: email informativo
+3 dias antes: email + WhatsApp urgente
+1 dia antes: ligação automática (Twilio API) + notificação push
+
+3. Gerador de Peças Jurídicas com IA
+Tecnologias Específicas:
+
+Template Engine: Handlebars + custom helpers
+IA: Claude 4.6 com prompt engineering avançado
+Editor: Lexical ou TipTap (WYSIWYG rico)
+
+Documentação Lexical: https://lexical.dev/
+
+
+Export: Docxtemplater (gera .docx editáveis)
+
+Documentação: https://docxtemplater.com/
+
+
+
+Tipos de Peças:
+
+Petição inicial
+Contestação
+Recurso (apelação, agravo)
+Memoriais
+Habeas corpus
+
+Fluxo de Geração:
+
+Advogado seleciona tipo de peça + preenche formulário
+IA gera rascunho usando RAG (busca jurisprudência relevante)
+Editor WYSIWYG para revisão
+Export para DOCX com formatação jurídica padrão
+
+Prompt Engineering:
+typescriptconst GERACAO_PECA_PROMPT = `
+Você é um advogado experiente. Gere uma ${tipoPeca} para o seguinte caso:
+
+Dados do caso:
+${JSON.stringify(dadosCaso)}
+
+Jurisprudência relevante:
+${jurisprudenciaRAG}
+
+Requisitos:
+- Use linguagem jurídica formal
+- Cite artigos de lei aplicáveis
+- Inclua fundamentação robusta
+- Estruture em: qualificação, fatos, direito, pedidos
+- Formato Markdown para fácil conversão
+
+Peça jurídica:
+`;
+4. Automação de Follow-up com Clientes
+Tecnologias Específicas:
+
+WhatsApp Business API (oficial Meta)
+Chatbot: Botpress ou Rasa (open-source NLU)
+
+Documentação Botpress: https://botpress.com/docs/
+
+
+Agendamento: node-schedule ou Agenda.js
+Templates: biblioteca de mensagens pré-aprovadas
+
+Funcionalidades:
+
+Atualização automática quando há movimentação processual
+Resposta a FAQs via NLP
+Transferência para humano quando necessário
+Histórico completo de interações
+
+Integração WhatsApp:
+typescript// Envio de atualização processual
+async function notificarCliente(clienteId: string, atualizacao: string) {
+  const cliente = await prisma.cliente.findUnique({
+    where: { id: clienteId },
+    include: { processos: true }
+  });
+  
+  await whatsappClient.sendMessage(
+    cliente.telefone,
+    {
+      text: `📋 *Atualização do Processo ${processo.numero}*\n\n${atualizacao}\n\n_Qualquer dúvida, responda esta mensagem._`
+    }
+  );
+}
+5. Sistema de Captação de Leads Jurídicos
+Tecnologias Específicas:
+
+Landing Pages: Next.js + Tailwind (otimizado para conversão)
+Forms: React Hook Form + validação em tempo real
+Analytics: Google Tag Manager + Meta Pixel
+CRM: integração com Pipedrive ou HubSpot API
+
+Documentação Pipedrive: https://developers.pipedrive.com/
+
+
+
+Funil de Conversão:
+
+Anúncio (Google/Meta) → palavra-chave específica
+Landing Page → formulário de qualificação inicial
+Chatbot → qualifica área e urgência
+Calculadora de Valor → estimativa usando tabela OAB + IA
+Agendamento → calendário integrado (Calendly ou Google)
+
+APIs de Anúncios:
+typescript// Google Ads - rastreamento de conversões
+import { GoogleAdsApi } from 'google-ads-api';
+
+const adsClient = new GoogleAdsApi({
+  client_id: process.env.GOOGLE_CLIENT_ID,
+  client_secret: process.env.GOOGLE_CLIENT_SECRET,
+  developer_token: process.env.GOOGLE_DEV_TOKEN,
+});
+
+// Registrar conversão quando lead qualificado agenda consulta
+await adsClient.uploadConversion({
+  conversionAction: 'agendamento_consulta',
+  gclid: req.cookies.gclid,
+  conversionDateTime: new Date().toISOString(),
+  conversionValue: valorEstimado,
+});
+Calculadora de Valor:
+
+Base: tabela de honorários OAB do estado
+Fatores: complexidade, urgência, valor da causa
+IA ajusta baseado em casos similares anteriores
+
+Considerações de Desenvolvimento
+Mobile-First e Responsividade
+
+Design System: tokens de design compartilhados entre web/mobile
+Breakpoints: mobile (320px+), tablet (768px+), desktop (1024px+)
+Touch Targets: mínimo 44x44px para mobile
+PWA: service workers para funcionamento offline
+
+Documentação: https://web.dev/progressive-web-apps/
+
+
+
+Performance
+
+Code Splitting: dynamic imports no Next.js
+Image Optimization: Next.js Image component + CDN
+Database Indexing: índices em colunas de busca frequente
+Caching Strategy:
+
+Redis para session/tokens (TTL curto)
+CDN para assets estáticos
+Query caching com TanStack Query (staleTime configurável)
+
+
+
+Testing
+
+Unit Tests: Vitest (mais rápido que Jest)
+
+Documentação: https://vitest.dev/
+
+
+Integration Tests: Supertest (API endpoints)
+E2E Tests: Playwright (cenários críticos)
+Coverage: mínimo 80% para lógica de negócio
+
+Documentação
+
+API: Swagger/OpenAPI via @nestjs/swagger
+Código: TSDoc comments
+README: instruções de setup, variáveis de ambiente
+ADRs: Architecture Decision Records para decisões importantes
+
+Variáveis de Ambiente (.env)
+bash# Database
+DATABASE_URL="postgresql://user:pass@localhost:5432/lawfirm"
+MONGODB_URI="mongodb://localhost:27017/lawfirm"
+REDIS_URL="redis://localhost:6379"
+
+# IA
+ANTHROPIC_API_KEY="sk-ant-..."
+OPENAI_API_KEY="sk-..."
+PINECONE_API_KEY="..."
+
+# WhatsApp
+WHATSAPP_BUSINESS_ID="..."
+WHATSAPP_ACCESS_TOKEN="..."
+WHATSAPP_PHONE_NUMBER_ID="..."
+WHATSAPP_VERIFY_TOKEN="random-string-here"
+
+# Email
+SENDGRID_API_KEY="SG..."
+SMTP_HOST="smtp.sendgrid.net"
+SMTP_PORT="587"
+
+# Google
+GOOGLE_CLIENT_ID="..."
+GOOGLE_CLIENT_SECRET="..."
+GOOGLE_ADS_DEVELOPER_TOKEN="..."
+GOOGLE_CALENDAR_API_KEY="..."
+
+# Meta
+META_APP_ID="..."
+META_APP_SECRET="..."
+META_ACCESS_TOKEN="..."
+
+# Auth
+NEXTAUTH_SECRET="generate-with-openssl-rand"
+NEXTAUTH_URL="http://localhost:3000"
+
+# Monitoring
+SENTRY_DSN="https://..."
+LOGTAIL_TOKEN="..."
+
+# Scraping
+PROXY_URL="http://username:pass@proxy.com:8080"
+TWOCAPTCHA_API_KEY="..."

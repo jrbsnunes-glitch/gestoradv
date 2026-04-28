@@ -1,0 +1,37 @@
+{
+  "name": "@gestor-adv/database",
+  "version": "0.0.1",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./master": "./src/master.ts",
+    "./generated/master": "./generated/master/index.js"
+  },
+  "scripts": {
+    "generate": "prisma generate",
+    "generate:master": "prisma generate --schema=prisma/master.prisma",
+    "generate:all": "prisma generate && prisma generate --schema=prisma/master.prisma",
+    "push": "prisma db push",
+    "push:master": "prisma db push --schema=prisma/master.prisma",
+    "push:all": "prisma db push && prisma db push --schema=prisma/master.prisma",
+    "migrate": "prisma migrate dev",
+    "studio": "prisma studio",
+    "studio:master": "prisma studio --schema=prisma/master.prisma",
+    "seed": "tsx src/seed.ts",
+    "seed:master": "tsx src/seed-master.ts",
+    "migrate:tenant": "tsx ../../tools/tenant-provisioner/migrate-existing.ts"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.6.0"
+  },
+  "devDependencies": {
+    "dotenv": "^16.4.7",
+    "bcrypt": "^5.1.1",
+    "@types/bcrypt": "^5.0.2",
+    "prisma": "^6.6.0",
+    "tsx": "^4.19.0",
+    "@gestor-adv/tsconfig": "workspace:*"
+  }
+}

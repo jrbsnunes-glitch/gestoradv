@@ -1,0 +1,42 @@
+{
+  "name": "gestor-adv",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "db:generate": "pnpm --filter @gestor-adv/database generate",
+    "db:generate:all": "pnpm --filter @gestor-adv/database generate:all",
+    "db:push": "pnpm --filter @gestor-adv/database push",
+    "db:migrate": "pnpm --filter @gestor-adv/database migrate",
+    "db:studio": "pnpm --filter @gestor-adv/database studio",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "docs:pdf": "node tools/build-docs-pdf.mjs",
+    "test": "turbo run test --filter=@gestor-adv/api",
+    "test:e2e": "pnpm --filter @gestor-adv/api test:e2e",
+    "test:e2e:web": "pnpm --filter @gestor-adv/web test:e2e"
+  },
+  "devDependencies": {
+    "marked": "^18.0.0",
+    "prettier": "^3.5.3",
+    "turbo": "^2.5.0"
+  },
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@nestjs/core",
+      "@prisma/client",
+      "@prisma/engines",
+      "bcrypt",
+      "esbuild",
+      "prisma",
+      "sharp"
+    ]
+  }
+}

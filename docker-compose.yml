@@ -1,0 +1,41 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: gestoradv-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: gestoradv
+      POSTGRES_PASSWORD: gestoradv_dev
+      POSTGRES_DB: gestoradv
+    volumes:
+      - gestoradv_postgres_data:/var/lib/postgresql/data
+      - ./docker/init:/docker-entrypoint-initdb.d:ro
+
+  redis:
+    image: redis:7-alpine
+    container_name: gestoradv-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - gestoradv_redis_data:/data
+
+  mongodb:
+    image: mongo:7
+    container_name: gestoradv-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: gestoradv
+      MONGO_INITDB_ROOT_PASSWORD: gestoradv_dev
+      MONGO_INITDB_DATABASE: gestoradv
+    volumes:
+      - gestoradv_mongo_data:/data/db
+
+volumes:
+  gestoradv_postgres_data:
+  gestoradv_redis_data:
+  gestoradv_mongo_data:

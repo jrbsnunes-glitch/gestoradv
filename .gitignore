@@ -1,0 +1,121 @@
+# =============================================================================
+# GestorAdv — o que NÃO entra no repositório (nem no deploy a partir do Git)
+# Manter .env.example e *.example versionados; segredos e builds ficam fora.
+# =============================================================================
+
+# --- Dependências e pacotes ---
+node_modules/
+.pnpm-store/
+.pnp
+.pnp.js
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+
+# --- Build e saídas compiladas ---
+dist/
+build/
+out/
+.next/
+.nuxt/
+.turbo/
+*.tsbuildinfo
+.swc/
+
+# --- Variáveis de ambiente e segredos (nunca commitar) ---
+.env
+.env.*
+!.env.example
+!.env.*.example
+!.env.test.example
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
+credentials/
+
+# --- Testes e cobertura ---
+coverage/
+.nyc_output/
+*.lcov
+junit.xml
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+
+# --- Logs e dumps ---
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+*.dump
+*.sqlite
+*.db
+
+# --- Prisma (binários e client gerado; recriar com prisma generate no CI/produção) ---
+packages/database/generated/
+packages/database/prisma/**/*.db
+packages/database/prisma/**/*.db-journal
+
+# --- Docker e dados locais ---
+.docker-data/
+docker-data/
+*.local.yml
+
+# --- Uploads e arquivos de runtime local ---
+uploads/
+tmp/
+temp/
+.cache/
+
+# --- Ferramentas e IDEs ---
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# --- Sistema operacional ---
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# --- Vercel / deploy local ---
+.vercel/
+
+# --- Storybook ---
+storybook-static/
+
+# --- Ferramentas diversas ---
+.eslintcache
+*.orig
+
+# --- Documentação gerada (artefatos de build docs) ---
+docs/gestoradv-documentacao-completa.html
+docs/gestoradv-documentacao-completa.md
+
+# --- Expo / React Native (quando existir apps/mobile) ---
+.expo/
+expo-env.d.ts
+*.jks
+*.keystore
+*.apk
+*.aab
+*.ipa
+
+# --- Puppeteer / Playwright browsers (cache global opcional) ---
+local-chromium/
