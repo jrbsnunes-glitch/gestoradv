@@ -61,11 +61,9 @@ jobs:
           sudo apt-get update -y && sudo apt-get install -y postgresql-client
           PGPASSWORD=gestoradv_dev psql -h 127.0.0.1 -U gestoradv -d gestoradv_e2e -tc "SELECT 1 FROM pg_database WHERE datname = 'gestoradv_e2e_master'" | grep -q 1 || PGPASSWORD=gestoradv_dev psql -h 127.0.0.1 -U gestoradv -d gestoradv_e2e -c "CREATE DATABASE gestoradv_e2e_master;"
 
+      # postinstall em @gestor-adv/database gera Prisma tenant + master
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-
-      - name: Generate Prisma clients
-        run: pnpm db:generate:all
 
       - name: Unit tests (API)
         run: pnpm test

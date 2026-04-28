@@ -10,6 +10,7 @@
     "./generated/master": "./generated/master/index.js"
   },
   "scripts": {
+    "postinstall": "node ./scripts/prisma-postinstall.mjs",
     "generate": "prisma generate",
     "generate:master": "prisma generate --schema=prisma/master.prisma",
     "generate:all": "prisma generate && prisma generate --schema=prisma/master.prisma",
