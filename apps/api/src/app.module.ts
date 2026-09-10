@@ -25,10 +25,16 @@ import { TribunaisModule } from './integrations/tribunais/tribunais.module';
 import { AdminModule } from './admin/admin.module';
 import { LicenseGuard } from './escritorio/license.guard';
 import { HealthController } from './health.controller';
+import { LlmModule } from './llm/llm.module';
+import { KnowledgeModule } from './knowledge/knowledge.module';
+import { AiAgentModule } from './ai-agent/ai-agent.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    LlmModule,
+    KnowledgeModule,
+    AiAgentModule,
     MasterPrismaModule,
     PrismaModule,
     TenantModule,

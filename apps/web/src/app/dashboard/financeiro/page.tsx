@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/auth';
@@ -63,11 +64,19 @@ function printArea(elementId: string, title: string) {
   setTimeout(() => win.print(), 300);
 }
 
-export default function FinanceiroPage() {
+function FinanceiroPageInner() {
+  const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<FinTab>('receitas');
   const { user } = useAuthStore();
   const isAdmin = user?.role === 'ADMIN';
   const [filterAdvogadoId, setFilterAdvogadoId] = useState('');
+
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab === 'receitas' || tab === 'saidas' || tab === 'caixa') {
+      setActiveTab(tab);
+    }
+  }, [searchParams]);
 
   const { data: advogados = [] } = useQuery<any[]>({
     queryKey: ['advogados'],
@@ -582,6 +591,14 @@ function CaixaSection({ advogadoId }: { advogadoId?: string }) {
         </div>
       )}
     </>
+  );
+}
+
+export default function FinanceiroPage() {
+  return (
+    <Suspense>
+      <FinanceiroPageInner />
+    </Suspense>
   );
 }
 

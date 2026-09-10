@@ -15,6 +15,6 @@ export interface MovimentacaoExterna {
 export interface TribunalConnector {
   nome: string;
   suportaTribunal(tribunal: string): boolean;
-  buscarPrazos(numeroProcesso: string): Promise<PrazoExterno[]>;
-  buscarMovimentacoes(numeroProcesso: string): Promise<MovimentacaoExterna[]>;
+  buscarPrazos(numeroProcesso: string, tribunal?: string): Promise<PrazoExterno[]>;
+  buscarMovimentacoes(numeroProcesso: string, tribunal?: string): Promise<MovimentacaoExterna[]>;
 }

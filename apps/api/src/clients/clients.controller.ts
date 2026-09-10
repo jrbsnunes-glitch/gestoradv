@@ -21,10 +21,15 @@ export class ClientsController {
 
   @Get()
   @ApiOperation({ summary: 'Listar clientes' })
-  findAll(@Query('page') page?: string, @Query('limit') limit?: string) {
+  findAll(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('search') search?: string,
+  ) {
     return this.clientsService.findAll(
       page ? parseInt(page) : 1,
       limit ? parseInt(limit) : 20,
+      search,
     );
   }
 

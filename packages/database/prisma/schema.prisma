@@ -147,6 +147,7 @@ model Processo {
   documentos   Documento[]
   tarefas      Tarefa[]
   lancamentos  Lancamento[]
+  atendimentos Atendimento[]
 
   @@index([advogadoId])
   @@index([clienteId])
@@ -360,6 +361,18 @@ model Escritorio {
   proxyUrl              String? @map("proxy_url")
   twocaptchaApiKey      String? @map("twocaptcha_api_key")
 
+  // Funil de atendimento
+  autoAtribuicaoAtiva       Boolean @default(false) @map("auto_atribuicao_ativa")
+  slaPrimeiroToqueMinutos   Int     @default(30) @map("sla_primeiro_toque_minutos")
+
+  // Configurações de IA
+  aiProvider       String  @default("anthropic") @map("ai_provider")
+  aiModel          String? @map("ai_model")
+  aiRagEnabled     Boolean @default(true) @map("ai_rag_enabled")
+  aiToolsEnabled   Boolean @default(true) @map("ai_tools_enabled")
+  aiSystemPrompt   String? @map("ai_system_prompt") @db.Text
+  ollamaBaseUrl      String? @map("ollama_base_url")
+
   // Licença (revalidação a cada 30 dias)
   licencaChave        String?  @unique @map("licenca_chave")
   licencaValidade     DateTime? @map("licenca_validade")
@@ -489,6 +502,9 @@ enum AtendimentoStatus {
   NOVO
   EM_ATENDIMENTO
   RESPONDIDO
+  EM_ANALISE
+  CONVERTIDO
+  PERDIDO
   ENCERRADO
   ARQUIVADO
 }
@@ -500,26 +516,32 @@ enum MensagemRemetente {
 }
 
 model Atendimento {
-  id               String             @id @default(cuid())
-  nome             String
-  telefone         String?
-  email            String?
-  canal            AtendimentoCanal
-  assunto          String?
-  mensagemOriginal String             @map("mensagem_original") @db.Text
-  areaDetectada    String?            @map("area_detectada")
-  urgencia         Int?               @default(0)
-  complexidade     String?
-  status           AtendimentoStatus  @default(NOVO)
-  clienteId        String?            @map("cliente_id")
-  responsavelId    String?            @map("responsavel_id")
-  etapaBot         String?            @map("etapa_bot")
-  dadosBot         Json?              @map("dados_bot")
-  createdAt        DateTime           @default(now()) @map("created_at")
-  updatedAt        DateTime           @updatedAt @map("updated_at")
+  id                  String             @id @default(cuid())
+  nome                String
+  telefone            String?
+  email               String?
+  canal               AtendimentoCanal
+  assunto             String?
+  mensagemOriginal    String             @map("mensagem_original") @db.Text
+  areaDetectada       String?            @map("area_detectada")
+  urgencia            Int?               @default(0)
+  complexidade        String?
+  viabilidade         Int?
+  valorEstimado       Decimal?           @map("valor_estimado") @db.Decimal(15, 2)
+  motivoPerda         String?            @map("motivo_perda")
+  slaFirstResponseAt  DateTime?          @map("sla_first_response_at")
+  status              AtendimentoStatus  @default(NOVO)
+  clienteId           String?            @map("cliente_id")
+  responsavelId       String?            @map("responsavel_id")
+  processoId          String?            @map("processo_id")
+  etapaBot            String?            @map("etapa_bot")
+  dadosBot            Json?              @map("dados_bot")
+  createdAt           DateTime           @default(now()) @map("created_at")
+  updatedAt           DateTime           @updatedAt @map("updated_at")
 
   cliente     Client?               @relation(fields: [clienteId], references: [id])
   responsavel User?                 @relation("AtendimentoResponsavel", fields: [responsavelId], references: [id])
+  processo    Processo?             @relation(fields: [processoId], references: [id])
   mensagens   AtendimentoMensagem[]
 
   @@index([status])
@@ -527,6 +549,7 @@ model Atendimento {
   @@index([urgencia])
   @@index([responsavelId])
   @@index([clienteId])
+  @@index([processoId])
   @@index([createdAt])
   @@map("atendimentos")
 }
@@ -544,6 +567,44 @@ model AtendimentoMensagem {
   @@index([atendimentoId])
   @@index([createdAt])
   @@map("atendimento_mensagens")
+}
+
+// ==================== BASE DE CONHECIMENTO (IA / RAG) ====================
+
+enum KnowledgeDocTipo {
+  FAQ
+  JURISPRUDENCIA
+  MODELO_INTERNO
+}
+
+model KnowledgeFaq {
+  id        String   @id @default(cuid())
+  pergunta  String
+  resposta  String   @db.Text
+  categoria String   @default("geral")
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  document KnowledgeDocument?
+
+  @@map("knowledge_faqs")
+}
+
+model KnowledgeDocument {
+  id        String           @id @default(cuid())
+  titulo    String
+  conteudo  String           @db.Text
+  tipo      KnowledgeDocTipo @default(FAQ)
+  faqId     String?          @unique @map("faq_id")
+  isActive  Boolean          @default(true) @map("is_active")
+  createdAt DateTime         @default(now()) @map("created_at")
+  updatedAt DateTime         @updatedAt @map("updated_at")
+
+  faq KnowledgeFaq? @relation(fields: [faqId], references: [id], onDelete: Cascade)
+
+  @@index([tipo])
+  @@map("knowledge_documents")
 }
 
 // ==================== AUDIT LOG (LGPD) ====================

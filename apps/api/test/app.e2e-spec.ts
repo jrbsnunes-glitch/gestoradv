@@ -53,14 +53,14 @@ describe('AppController (e2e)', () => {
   it('POST /api/auth/login credenciais inválidas', () => {
     return request(app.getHttpServer())
       .post('/api/auth/login')
-      .send({ email: E2E_EMAIL, password: 'wrong-password' })
+      .send({ tenantSlug: 'gestoradv', username: 'e2e-user', password: 'wrong-password' })
       .expect(401);
   });
 
   it('POST /api/auth/login sucesso', () => {
     return request(app.getHttpServer())
       .post('/api/auth/login')
-      .send({ email: E2E_EMAIL, password: E2E_PASSWORD })
+      .send({ tenantSlug: 'gestoradv', username: 'e2e-user', password: E2E_PASSWORD })
       .expect(201)
       .expect((res) => {
         expect(res.body.access_token).toBeDefined();
@@ -71,7 +71,7 @@ describe('AppController (e2e)', () => {
   it('GET /api/users com JWT', async () => {
     const login = await request(app.getHttpServer())
       .post('/api/auth/login')
-      .send({ email: E2E_EMAIL, password: E2E_PASSWORD });
+      .send({ tenantSlug: 'gestoradv', username: 'e2e-user', password: E2E_PASSWORD });
     const token = login.body.access_token as string;
 
     return request(app.getHttpServer())

@@ -33,7 +33,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   useEffect(() => {
     const token = localStorage.getItem('access_token');
     if (!token) {
-      router.push('/login');
+      router.push('/');
     }
   }, [isAuthenticated, router]);
 
@@ -77,7 +77,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
           </div>
           <button
-            onClick={() => { logout(); router.push('/login'); }}
+            onClick={() => { logout(); router.push('/'); }}
             className="w-full rounded-lg border border-border px-3 py-2 text-xs font-medium text-muted-foreground transition hover:bg-secondary hover:text-foreground"
           >
             Sair

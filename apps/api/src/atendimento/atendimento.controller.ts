@@ -88,4 +88,45 @@ export class AtendimentoController {
   async aprovarCadastro(@Param('id') id: string): Promise<any> {
     return this.atendimentoService.aprovarCadastro(id);
   }
+
+  @Post(':id/promover-lead')
+  @Roles('ADMIN', 'ADVOGADO')
+  @ApiOperation({ summary: 'Cadastrar cliente mínimo e vincular ao atendimento' })
+  async promoverLead(
+    @Param('id') id: string,
+    @Body() body: { nome: string; email: string; cpf?: string; telefone?: string },
+  ): Promise<any> {
+    return this.atendimentoService.promoverLead(id, body);
+  }
+
+  @Patch(':id/marcar-perdido')
+  @Roles('ADMIN', 'ADVOGADO')
+  @ApiOperation({ summary: 'Marcar atendimento como perdido com motivo' })
+  async marcarPerdido(
+    @Param('id') id: string,
+    @Body() body: { motivo: string },
+  ): Promise<any> {
+    return this.atendimentoService.marcarPerdido(id, body.motivo);
+  }
+
+  @Post(':id/converter-em-processo')
+  @Roles('ADMIN', 'ADVOGADO')
+  @ApiOperation({ summary: 'Converter atendimento em processo (cria processo + tarefa + notificação)' })
+  async converterEmProcesso(
+    @Param('id') id: string,
+    @CurrentUser('id') userId: string,
+    @Body()
+    body: {
+      numero: string;
+      tribunal: string;
+      vara?: string;
+      comarca?: string;
+      area?: string;
+      valorCausa?: number;
+      advogadoId?: string;
+      descricao?: string;
+    },
+  ): Promise<any> {
+    return this.atendimentoService.converterEmProcesso(id, userId, body);
+  }
 }

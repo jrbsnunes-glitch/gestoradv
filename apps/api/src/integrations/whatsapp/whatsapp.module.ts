@@ -7,9 +7,11 @@ import { AtendimentoModule } from '../../atendimento/atendimento.module';
 import { ChatbotModule } from '../../chatbot/chatbot.module';
 import { EmailModule } from '../../email/email.module';
 import { NotificationsModule } from '../../notifications/notifications.module';
+import { AiAgentModule } from '../../ai-agent/ai-agent.module';
+import { KnowledgeModule } from '../../knowledge/knowledge.module';
 
 @Module({
-  imports: [AtendimentoModule, ChatbotModule, EmailModule, NotificationsModule],
+  imports: [AtendimentoModule, ChatbotModule, AiAgentModule, KnowledgeModule, EmailModule, NotificationsModule],
   providers: [WhatsappService, WhatsappBotService, WhatsappAlertService],
   controllers: [WhatsappController],
   exports: [WhatsappService, WhatsappBotService, WhatsappAlertService],

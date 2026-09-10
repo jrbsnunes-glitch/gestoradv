@@ -18,4 +18,5 @@ export interface ScraperConfig {
   proxyUrl?: string;
   twoCaptchaKey?: string;
   headless?: boolean;
+  timeout?: number;
 }

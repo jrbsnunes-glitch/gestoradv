@@ -51,6 +51,7 @@ function ProcessosPage() {
   const [showNewClient, setShowNewClient] = useState(false);
   const [editingProcesso, setEditingProcesso] = useState<any>(null);
   const [showConcluir, setShowConcluir] = useState<any>(null);
+  const [statusFilter, setStatusFilter] = useState('');
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
   const isAdmin = user?.role === 'ADMIN';
@@ -76,6 +77,8 @@ function ProcessosPage() {
   useEffect(() => {
     const clienteId = searchParams.get('clienteId');
     const advogadoId = searchParams.get('advogadoId');
+    const status = searchParams.get('status');
+    if (status) setStatusFilter(status);
     if (clienteId || advogadoId) {
       setShowForm(true);
       setTimeout(() => {
@@ -213,12 +216,21 @@ function ProcessosPage() {
     EM_RECURSO: 'bg-info/10 text-info',
   };
 
+  const processos = (data?.data ?? []).filter((p: any) => !statusFilter || p.status === statusFilter);
+
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Processos</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Gerencie todos os processos do escritório</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Gerencie todos os processos do escritório
+            {statusFilter && (
+              <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                Filtro: {statusFilter}
+              </span>
+            )}
+          </p>
         </div>
         <button onClick={openCreate} className="rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow transition hover:bg-primary/90">
           Novo Processo
@@ -241,10 +253,12 @@ function ProcessosPage() {
           <tbody>
             {isLoading ? (
               <tr><td colSpan={7} className="px-4 py-8 text-center text-sm text-muted-foreground">Carregando...</td></tr>
-            ) : !data?.data?.length ? (
-              <tr><td colSpan={7} className="px-4 py-8 text-center text-sm text-muted-foreground">Nenhum processo cadastrado</td></tr>
+            ) : !processos.length ? (
+              <tr><td colSpan={7} className="px-4 py-8 text-center text-sm text-muted-foreground">
+                {statusFilter ? 'Nenhum processo com este filtro' : 'Nenhum processo cadastrado'}
+              </td></tr>
             ) : (
-              data.data.map((p: any) => (
+              processos.map((p: any) => (
                 <tr key={p.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition">
                   <td className="px-4 py-3">
                     <Link href={`/dashboard/processos/${p.id}`} className="text-sm font-medium text-primary hover:underline">{p.numero}</Link>

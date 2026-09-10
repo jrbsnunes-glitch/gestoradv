@@ -3,6 +3,8 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { ChatbotService } from '../../chatbot/chatbot.service';
 import { WhatsappService } from './whatsapp.service';
 import { AtendimentoService } from '../../atendimento/atendimento.service';
+import { AiAgentService } from '../../ai-agent/ai-agent.service';
+import { RagService } from '../../knowledge/rag.service';
 
 const INTENT_PROMPT = `Você é um roteador de mensagens de um escritório de advocacia brasileiro.
 Analise a mensagem do cliente e o contexto fornecido. Retorne APENAS um JSON válido (sem markdown, sem texto extra):
@@ -34,6 +36,8 @@ export class WhatsappBotService {
     private chatbot: ChatbotService,
     private whatsapp: WhatsappService,
     private atendimentoService: AtendimentoService,
+    private aiAgent: AiAgentService,
+    private rag: RagService,
   ) {}
 
   async handle(telefone: string, texto: string, nomeContato?: string) {
@@ -65,6 +69,7 @@ export class WhatsappBotService {
           data: { status: 'EM_ATENDIMENTO' },
         });
       }
+      await this.tryIaReply(atendimentoAberto.id, telefone, texto);
       return;
     }
 
@@ -72,7 +77,9 @@ export class WhatsappBotService {
   }
 
   private async handleFirstContact(telefone: string, texto: string, nomeContato?: string) {
-    const nome = nomeContato || telefone;
+    const clienteExistente = await this.findClientByPhone(telefone);
+
+    const nome = clienteExistente?.user?.name || nomeContato || telefone;
     const escritorio = await this.prisma.escritorio.findFirst({
       select: { nomeFantasia: true, razaoSocial: true },
     });
@@ -81,9 +88,17 @@ export class WhatsappBotService {
     const atendimento = await this.atendimentoService.create({
       nome,
       telefone,
+      email: clienteExistente?.user?.email,
       canal: 'WHATSAPP',
       mensagem: texto,
     });
+
+    if (clienteExistente) {
+      await this.prisma.atendimento.update({
+        where: { id: atendimento.id },
+        data: { clienteId: clienteExistente.id },
+      });
+    }
 
     const intent = await this.detectIntent(texto);
 
@@ -106,6 +121,11 @@ export class WhatsappBotService {
 
     if (intent === 'triagem') {
       return this.handleTriagem(atendimento.id, telefone, texto);
+    }
+
+    if (intent === 'duvida_geral') {
+      const answered = await this.tryIaReply(atendimento.id, telefone, texto);
+      if (answered) return;
     }
 
     const menu = `Olá${nome !== telefone ? ', ' + nome.split(' ')[0] : ''}! Sou o assistente virtual de ${nomeEscritorio}. Como posso ajudá-lo?\n\n` +
@@ -430,6 +450,40 @@ export class WhatsappBotService {
     await this.sendWA(telefone, msg);
   }
 
+  private async tryIaReply(atendimentoId: string, telefone: string, texto: string): Promise<boolean> {
+    if (!this.chatbot.isConfigured) return false;
+
+    const mensagens = await this.prisma.atendimentoMensagem.findMany({
+      where: { atendimentoId },
+      orderBy: { createdAt: 'asc' },
+      take: 12,
+    });
+    const history = mensagens.map((m) => `[${m.remetente}]: ${m.conteudo}`).join('\n');
+
+    try {
+      const agent = await this.aiAgent.runAgent({
+        userMessage: texto,
+        telefone,
+        atendimentoId,
+        history,
+      });
+      if (agent.reply) {
+        await this.sendWA(telefone, agent.reply);
+        return true;
+      }
+    } catch {}
+
+    try {
+      const rag = await this.rag.generateReply(texto, history);
+      if (rag) {
+        await this.sendWA(telefone, rag);
+        return true;
+      }
+    } catch {}
+
+    return false;
+  }
+
   private async detectIntent(texto: string): Promise<string> {
     const lower = texto.toLowerCase().trim();
 
@@ -437,6 +491,9 @@ export class WhatsappBotService {
     if (/^(oi|olá|ola|bom dia|boa tarde|boa noite|hey|hello|hi)\b/i.test(lower)) return 'saudacao';
     if (/\b(processo|andamento|status|consulta|meu caso)\b/i.test(lower)) return 'consulta_processo';
     if (/\b(cadastr|registr|me inscrever|ser cliente|quero ser)\b/i.test(lower)) return 'cadastro';
+    if (/\b(horário|horario|honorário|honorario|valor|atend|endereço|endereco|funciona)\b/i.test(lower)) {
+      return 'duvida_geral';
+    }
 
     if (!this.chatbot.isConfigured) return 'triagem';
 
@@ -472,7 +529,12 @@ export class WhatsappBotService {
       include: { clientProfile: true },
     });
 
-    return user?.clientProfile || null;
+    if (!user?.clientProfile) return null;
+
+    return {
+      ...user.clientProfile,
+      user: { id: user.id, name: user.name, email: user.email },
+    };
   }
 
   private async sendWA(telefone: string, texto: string) {

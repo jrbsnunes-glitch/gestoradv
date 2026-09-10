@@ -192,6 +192,12 @@ export class EscritorioService {
     'datajudApiKey',
     'proxyUrl',
     'twocaptchaApiKey',
+    'aiProvider',
+    'aiModel',
+    'aiRagEnabled',
+    'aiToolsEnabled',
+    'aiSystemPrompt',
+    'ollamaBaseUrl',
   ] as const;
 
   async getIntegracoes(): Promise<any> {
@@ -204,6 +210,12 @@ export class EscritorioService {
         datajudApiKey: true,
         proxyUrl: true,
         twocaptchaApiKey: true,
+        aiProvider: true,
+        aiModel: true,
+        aiRagEnabled: true,
+        aiToolsEnabled: true,
+        aiSystemPrompt: true,
+        ollamaBaseUrl: true,
       },
     });
 
@@ -235,20 +247,31 @@ export class EscritorioService {
         proxyUrl: escritorio.proxyUrl || null,
         twocaptchaApiKey: mask(escritorio.twocaptchaApiKey),
       },
+      ai: {
+        provider: escritorio.aiProvider || 'anthropic',
+        model: escritorio.aiModel || null,
+        ragEnabled: escritorio.aiRagEnabled ?? true,
+        toolsEnabled: escritorio.aiToolsEnabled ?? true,
+        systemPrompt: escritorio.aiSystemPrompt || null,
+        ollamaBaseUrl: escritorio.ollamaBaseUrl || null,
+      },
     };
   }
 
-  async updateIntegracoes(data: Record<string, string | null>): Promise<any> {
+  async updateIntegracoes(data: Record<string, string | boolean | null>): Promise<any> {
     const escritorio = await this.prisma.escritorio.findFirst();
     if (!escritorio) {
       return { success: false, message: 'Escritório não encontrado. Cadastre os dados do escritório primeiro.' };
     }
 
     const allowed = new Set<string>(this.INTEGRATION_FIELDS);
-    const updateData: Record<string, string | null> = {};
+    const updateData: Record<string, string | boolean | null> = {};
     for (const [key, value] of Object.entries(data)) {
-      if (allowed.has(key)) {
-        updateData[key] = value || null;
+      if (!allowed.has(key)) continue;
+      if (key === 'aiRagEnabled' || key === 'aiToolsEnabled') {
+        updateData[key] = value === true || value === 'true';
+      } else {
+        updateData[key] = (value as string) || null;
       }
     }
 

@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { EscritorioService } from '../escritorio/escritorio.service';
+import { LlmService } from '../llm/llm.service';
+import { RagService } from '../knowledge/rag.service';
 
 const TRIAGEM_PROMPT = `Você é um assistente jurídico especializado em triagem de casos para um escritório de advocacia brasileiro.
 
@@ -22,42 +24,32 @@ const PECA_TIPO_LABELS: Record<string, string> = {
 
 @Injectable()
 export class ChatbotService {
-  private apiKey: string;
-
   constructor(
     private config: ConfigService,
+    private llm: LlmService,
     private escritorioService: EscritorioService,
-  ) {
-    this.apiKey = this.config.get('ANTHROPIC_API_KEY') || '';
-  }
+    private rag: RagService,
+  ) {}
 
   get isConfigured(): boolean {
-    return !!this.apiKey;
+    return !!(this.config.get('ANTHROPIC_API_KEY') || this.config.get('OPENAI_API_KEY'));
   }
 
-  async triagem(messages: Array<{ role: string; content: string }>): Promise<string> {
+  async triagem(messages: Array<{ role: string; content: string }>, systemPrompt?: string): Promise<string> {
     if (!this.isConfigured) {
-      return 'O serviço de IA não está configurado. Configure ANTHROPIC_API_KEY no arquivo .env para utilizar o chatbot.';
+      return 'O serviço de IA não está configurado. Configure ANTHROPIC_API_KEY ou OPENAI_API_KEY no arquivo .env.';
     }
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': this.apiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 2048,
-        system: TRIAGEM_PROMPT,
-        messages: messages.map((m) => ({ role: m.role, content: m.content })),
-      }),
+    const result = await this.llm.complete({
+      system: systemPrompt || TRIAGEM_PROMPT,
+      messages: messages.map((m) => ({
+        role: m.role === 'assistant' ? 'assistant' : 'user',
+        content: m.content,
+      })),
+      maxTokens: 2048,
     });
 
-    const data = await response.json();
-    const textBlock = data?.content?.find((b: any) => b.type === 'text');
-    return textBlock?.text || 'Erro ao processar resposta.';
+    return result.text || 'Erro ao processar resposta.';
   }
 
   async gerarPeca(input: {
@@ -71,7 +63,7 @@ export class ChatbotService {
     advogadoOabEstado?: string;
   }): Promise<string> {
     if (!this.isConfigured) {
-      return 'O serviço de IA não está configurado. Configure ANTHROPIC_API_KEY no arquivo .env.';
+      return 'O serviço de IA não está configurado. Configure ANTHROPIC_API_KEY ou OPENAI_API_KEY no .env.';
     }
 
     const escritorio = await this.escritorioService.getForDocument();
@@ -80,7 +72,8 @@ export class ChatbotService {
     let escritorioBlock = '';
     if (escritorio) {
       const endereco = [escritorio.endereco, escritorio.numero, escritorio.complemento, escritorio.bairro]
-        .filter(Boolean).join(', ');
+        .filter(Boolean)
+        .join(', ');
       const cidadeUf = [escritorio.cidade, escritorio.estado].filter(Boolean).join('/');
 
       escritorioBlock = `
@@ -101,9 +94,19 @@ ADVOGADO RESPONSÁVEL:
 - ${input.advogadoNome}, OAB/${input.advogadoOabEstado || '??'} ${input.advogadoOab || ''}`;
     }
 
+    const ragContext = await this.rag.retrieveDocuments(
+      `${input.tipo} ${input.fatos} ${input.pedidos}`,
+      5,
+    );
+    const jurisprudenciaBlock =
+      ragContext.length > 0
+        ? `\nCONTEXTO JURÍDICO (use como referência, cite se aplicável):\n${ragContext.map((d) => `- ${d.titulo}: ${d.conteudo.slice(0, 600)}`).join('\n')}`
+        : '';
+
     const prompt = `Gere uma ${tipoLabel} completa e profissional.
 ${escritorioBlock}
 ${advogadoBlock}
+${jurisprudenciaBlock}
 
 DADOS DO CASO:
 - Parte Autora: ${input.parteAutora}
@@ -120,22 +123,11 @@ REQUISITOS:
 - Formato Markdown
 - Inclua: local (${escritorio?.cidade || 'cidade'}), data atual, e espaço para assinatura do advogado`;
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': this.apiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 8192,
-        messages: [{ role: 'user', content: prompt }],
-      }),
+    const result = await this.llm.complete({
+      messages: [{ role: 'user', content: prompt }],
+      maxTokens: 8192,
     });
 
-    const data = await response.json();
-    const textBlock = data?.content?.find((b: any) => b.type === 'text');
-    return textBlock?.text || 'Erro ao gerar peça.';
+    return result.text || 'Erro ao gerar peça.';
   }
 }

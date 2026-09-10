@@ -14,8 +14,12 @@
     "test:e2e": "jest --config ./jest-e2e.config.ts --runInBand"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
     "@gestor-adv/database": "workspace:*",
     "@gestor-adv/validators": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.12.1",
+    "openai": "^4.77.0",
+    "playwright": "^1.49.1",
     "@nestjs/bullmq": "^11.0.4",
     "@nestjs/common": "^11.0.0",
     "@nestjs/config": "^4.0.0",

@@ -1,6 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { TribunalConnector, PrazoExterno, MovimentacaoExterna } from './interfaces/tribunal-connector.interface';
 import { StubConnector } from './connectors/stub.connector';
+import { DatajudConnector } from './connectors/datajud.connector';
+import { PlaywrightConnector } from './connectors/playwright.connector';
 import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
@@ -9,10 +11,12 @@ export class TribunaisService {
   private connectors: TribunalConnector[] = [];
 
   constructor(
+    private datajudConnector: DatajudConnector,
+    private playwrightConnector: PlaywrightConnector,
     private stubConnector: StubConnector,
     private prisma: PrismaService,
   ) {
-    this.connectors = [this.stubConnector];
+    this.connectors = [this.datajudConnector, this.playwrightConnector, this.stubConnector];
   }
 
   async getCredenciais(): Promise<{ datajudApiKey: string | null; proxyUrl: string | null; twocaptchaApiKey: string | null }> {
@@ -40,7 +44,7 @@ export class TribunaisService {
       if (tribunal && !connector.suportaTribunal(tribunal)) continue;
 
       try {
-        const prazos = await connector.buscarPrazos(numeroProcesso);
+        const prazos = await connector.buscarPrazos(numeroProcesso, tribunal);
         if (prazos.length > 0) {
           this.logger.log(`${connector.nome}: ${prazos.length} prazos encontrados para ${numeroProcesso}`);
           return prazos;
@@ -58,7 +62,7 @@ export class TribunaisService {
       if (tribunal && !connector.suportaTribunal(tribunal)) continue;
 
       try {
-        const movs = await connector.buscarMovimentacoes(numeroProcesso);
+        const movs = await connector.buscarMovimentacoes(numeroProcesso, tribunal);
         if (movs.length > 0) {
           this.logger.log(`${connector.nome}: ${movs.length} movimentações encontradas para ${numeroProcesso}`);
           return movs;

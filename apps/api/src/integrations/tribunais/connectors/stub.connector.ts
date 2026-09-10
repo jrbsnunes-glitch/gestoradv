@@ -10,12 +10,12 @@ export class StubConnector implements TribunalConnector {
     return false;
   }
 
-  async buscarPrazos(numeroProcesso: string): Promise<PrazoExterno[]> {
+  async buscarPrazos(numeroProcesso: string, _tribunal?: string): Promise<PrazoExterno[]> {
     this.logger.log(`[Stub] buscarPrazos chamado para processo ${numeroProcesso} — nenhum connector real configurado`);
     return [];
   }
 
-  async buscarMovimentacoes(numeroProcesso: string): Promise<MovimentacaoExterna[]> {
+  async buscarMovimentacoes(numeroProcesso: string, _tribunal?: string): Promise<MovimentacaoExterna[]> {
     this.logger.log(`[Stub] buscarMovimentacoes chamado para processo ${numeroProcesso} — nenhum connector real configurado`);
     return [];
   }

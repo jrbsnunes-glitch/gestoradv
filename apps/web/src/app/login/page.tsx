@@ -1,111 +1,217 @@
 'use client';
 
-import { useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { loginSchema, type LoginInput } from '@gestor-adv/validators';
+import { Building2, Eye, EyeOff, Lock, User } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/auth';
+import './login.css';
+
+const REMEMBER_KEY = 'gadv_login_remember';
+
+type Remembered = { tenantSlug: string; username: string };
+
+function readRemembered(): Remembered | null {
+  try {
+    const raw = localStorage.getItem(REMEMBER_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Remembered;
+    if (typeof parsed?.tenantSlug === 'string' && typeof parsed?.username === 'string') {
+      return parsed;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
 
 export default function LoginPage() {
   const router = useRouter();
   const login = useAuthStore((s) => s.login);
-  const [error, setError] = useState('');
+  const hydrate = useAuthStore((s) => s.hydrate);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const [tenantSlug, setTenantSlug] = useState('');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [remember, setRemember] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<LoginInput>({
-    resolver: zodResolver(loginSchema),
-  });
+  useEffect(() => {
+    hydrate();
+  }, [hydrate]);
 
-  const onSubmit = async (data: LoginInput) => {
-    setLoading(true);
-    setError('');
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.replace('/dashboard');
+    }
+  }, [isAuthenticated, router]);
+
+  useEffect(() => {
+    const stored = readRemembered();
+    if (!stored) return;
+    setTenantSlug(stored.tenantSlug);
+    setUsername(stored.username);
+    setRemember(true);
+  }, []);
+
+  useEffect(() => {
+    if (remember) return;
     try {
-      const result = await api.post<{ access_token: string; user: any }>('/auth/login', data);
+      localStorage.removeItem(REMEMBER_KEY);
+    } catch {
+      /* ignore */
+    }
+  }, [remember]);
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+    try {
+      const slug = tenantSlug.trim();
+      const user = username.trim().toLowerCase();
+      const result = await api.post<{ access_token: string; user: { id: string; email: string; role: string } }>(
+        '/auth/login',
+        {
+          tenantSlug: slug,
+          username: user,
+          password,
+        },
+      );
+      if (remember) {
+        try {
+          localStorage.setItem(REMEMBER_KEY, JSON.stringify({ tenantSlug: slug, username: user }));
+        } catch {
+          /* ignore */
+        }
+      }
+      localStorage.setItem('tenant_slug', slug);
       login(result.access_token, result.user);
       router.push('/dashboard');
-    } catch (err: any) {
-      setError(err.message || 'Erro ao fazer login');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Erro ao fazer login';
+      if (msg === 'Failed to fetch' || msg.includes('NetworkError')) {
+        setError('Não foi possível conectar à API. Verifique se o servidor está rodando (porta 3001).');
+      } else {
+        setError(msg);
+      }
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-primary/5 via-background to-primary/10 px-4">
-      <div className="w-full max-w-md">
-        <div className="mb-8 text-center">
-          <Link href="/" className="inline-flex items-center gap-3">
-            <img src="/logo.png" alt="GestorAdv" className="h-12 w-12 rounded-lg object-contain" />
-            <span className="text-2xl font-bold text-foreground">GestorAdv</span>
-          </Link>
-        </div>
-
-        <div className="rounded-xl border border-border bg-card p-8 shadow-sm">
-          <h2 className="mb-6 text-center text-xl font-semibold text-foreground">
-            Acessar o Sistema
-          </h2>
-
-          {error && (
-            <div className="mb-4 rounded-lg bg-destructive/10 px-4 py-3 text-sm text-destructive">
-              {error}
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <div>
-              <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-foreground">
-                Email
-              </label>
-              <input
-                id="email"
-                type="email"
-                {...register('email')}
-                className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-ring/20"
-                placeholder="seu@email.com"
-              />
-              {errors.email && (
-                <p className="mt-1 text-xs text-destructive">{errors.email.message}</p>
-              )}
-            </div>
-
-            <div>
-              <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-foreground">
-                Senha
-              </label>
-              <input
-                id="password"
-                type="password"
-                {...register('password')}
-                className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-ring/20"
-                placeholder="********"
-              />
-              {errors.password && (
-                <p className="mt-1 text-xs text-destructive">{errors.password.message}</p>
-              )}
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow transition hover:bg-primary/90 disabled:opacity-50"
-            >
-              {loading ? 'Entrando...' : 'Entrar'}
-            </button>
-          </form>
-
-          <p className="mt-6 text-center text-sm text-muted-foreground">
-            Não tem conta?{' '}
-            <Link href="/register" className="font-medium text-primary hover:underline">
-              Cadastre-se
-            </Link>
+    <div className="login-page">
+      <div className="login-shell">
+        <aside className="login-hero">
+          <div className="login-hero-mark">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img className="login-hero-logo" src="/logo.png" alt="GestorAdv" decoding="async" />
+          </div>
+          <h1 className="login-hero-title">Gestão inteligente para seu escritório</h1>
+          <p className="login-hero-text">
+            Processos, prazos, clientes e financeiro em um só lugar — com automação e IA integrada.
           </p>
+        </aside>
+
+        <div className="login-card">
+          <div className="login-mobile-hero">
+            <div className="login-hero-mark login-hero-mark--mobile">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img className="login-mobile-logo" src="/logo.png" alt="GestorAdv" decoding="async" />
+            </div>
+          </div>
+
+          <div className="login-card-body">
+            <div className="login-brand-copy">
+              <h2>Bem-vindo ao GestorAdv</h2>
+              <p className="login-subtitle">
+                Entre com a abreviatura do escritório, usuário e senha.
+              </p>
+            </div>
+
+            <form onSubmit={submit}>
+              <div className="login-field">
+                <label htmlFor="tenant">Escritório</label>
+                <div className="login-input-wrap">
+                  <span className="login-input-icon" aria-hidden>
+                    <Building2 size={18} />
+                  </span>
+                  <input
+                    id="tenant"
+                    value={tenantSlug}
+                    onChange={(e) => setTenantSlug(e.target.value)}
+                    required
+                    autoComplete="organization"
+                    placeholder="ex.: gestoradv"
+                  />
+                </div>
+              </div>
+
+              <div className="login-field">
+                <label htmlFor="username">Usuário</label>
+                <div className="login-input-wrap">
+                  <span className="login-input-icon" aria-hidden>
+                    <User size={18} />
+                  </span>
+                  <input
+                    id="username"
+                    type="text"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    required
+                    autoComplete="username"
+                    minLength={2}
+                    spellCheck={false}
+                    placeholder="ex.: admin"
+                  />
+                </div>
+              </div>
+
+              <div className="login-field">
+                <label htmlFor="password">Senha</label>
+                <div className="login-input-wrap">
+                  <span className="login-input-icon" aria-hidden>
+                    <Lock size={18} />
+                  </span>
+                  <input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    autoComplete="current-password"
+                    placeholder="••••••••"
+                  />
+                  <button
+                    type="button"
+                    className="login-eye"
+                    onClick={() => setShowPassword((v) => !v)}
+                    aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+              </div>
+
+              <label className="login-remember">
+                <input
+                  type="checkbox"
+                  checked={remember}
+                  onChange={(e) => setRemember(e.target.checked)}
+                />
+                <span>Lembrar-me</span>
+              </label>
+
+              {error && <div className="login-alert-error">{error}</div>}
+
+              <button type="submit" className="login-submit" disabled={loading}>
+                {loading ? 'Entrando…' : 'Entrar'}
+              </button>
+            </form>
+          </div>
         </div>
       </div>
     </div>

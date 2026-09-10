@@ -50,12 +50,25 @@ export class ClientsService {
     });
   }
 
-  async findAll(page = 1, limit = 20) {
+  async findAll(page = 1, limit = 20, search?: string) {
     const skip = (page - 1) * limit;
+
+    const where = search?.trim()
+      ? {
+          OR: [
+            { user: { name: { contains: search.trim(), mode: 'insensitive' as const } } },
+            { user: { email: { contains: search.trim(), mode: 'insensitive' as const } } },
+            { user: { phone: { contains: search.trim() } } },
+            { cpfCnpj: { contains: search.trim() } },
+          ],
+        }
+      : {};
+
     const [clients, total] = await Promise.all([
       this.prisma.client.findMany({
         skip,
         take: limit,
+        where,
         include: {
           user: {
             select: { id: true, name: true, email: true, phone: true, isActive: true },
@@ -63,7 +76,7 @@ export class ClientsService {
         },
         orderBy: { createdAt: 'desc' },
       }),
-      this.prisma.client.count(),
+      this.prisma.client.count({ where }),
     ]);
 
     return {

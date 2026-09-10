@@ -3,7 +3,12 @@ import { BullModule } from '@nestjs/bullmq';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PrazosAlertProcessor } from './processors/prazos-alert.processor';
 import { PrazosAlertService } from './prazos-alert.service';
+import { AtendimentoSlaProcessor } from './processors/atendimento-sla.processor';
+import { AtendimentoSlaService } from './atendimento-sla.service';
+import { TribunalSyncProcessor } from './processors/tribunal-sync.processor';
+import { TribunalSyncService } from './tribunal-sync.service';
 import { WhatsappModule } from '../integrations/whatsapp/whatsapp.module';
+import { TribunaisModule } from '../integrations/tribunais/tribunais.module';
 
 @Module({
   imports: [
@@ -18,9 +23,19 @@ import { WhatsappModule } from '../integrations/whatsapp/whatsapp.module';
       inject: [ConfigService],
     }),
     BullModule.registerQueue({ name: 'prazos-alerts' }),
+    BullModule.registerQueue({ name: 'atendimento-sla' }),
+    BullModule.registerQueue({ name: 'tribunal-sync' }),
     WhatsappModule,
+    TribunaisModule,
   ],
-  providers: [PrazosAlertProcessor, PrazosAlertService],
-  exports: [PrazosAlertService],
+  providers: [
+    PrazosAlertProcessor,
+    PrazosAlertService,
+    AtendimentoSlaProcessor,
+    AtendimentoSlaService,
+    TribunalSyncProcessor,
+    TribunalSyncService,
+  ],
+  exports: [PrazosAlertService, AtendimentoSlaService, TribunalSyncService],
 })
 export class QueuesModule {}

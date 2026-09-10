@@ -17,7 +17,10 @@
     "docs:pdf": "node tools/build-docs-pdf.mjs",
     "test": "turbo run test --filter=@gestor-adv/api",
     "test:e2e": "pnpm --filter @gestor-adv/api test:e2e",
-    "test:e2e:web": "pnpm --filter @gestor-adv/web test:e2e"
+    "test:e2e:web": "pnpm --filter @gestor-adv/web test:e2e",
+    "mcp:server": "node tools/mcp-server/index.mjs",
+    "check:setup": "powershell -ExecutionPolicy Bypass -File ./check-setup.ps1",
+    "check:setup:fix": "powershell -ExecutionPolicy Bypass -File ./check-setup.ps1 -FixPgVector"
   },
   "devDependencies": {
     "marked": "^18.0.0",

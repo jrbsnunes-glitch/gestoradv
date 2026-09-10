@@ -11,6 +11,18 @@ export class UsersService {
     return this.prisma.user.findUnique({ where: { email } });
   }
 
+  /** Localiza usuário pelo login (parte antes do @ no e-mail). */
+  async findByLoginUsername(username: string): Promise<any> {
+    const normalized = (username ?? '').trim().toLowerCase();
+    if (!normalized) return null;
+    return this.prisma.user.findFirst({
+      where: {
+        isActive: true,
+        email: { startsWith: `${normalized}@`, mode: 'insensitive' },
+      },
+    });
+  }
+
   async findById(id: string) {
     const user = await this.prisma.user.findUnique({
       where: { id },

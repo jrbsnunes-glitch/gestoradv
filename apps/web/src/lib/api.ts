@@ -36,6 +36,9 @@ class ApiClient {
         : typeof raw === 'string'
           ? raw
           : `HTTP ${response.status}`;
+      if (response.status === 401) {
+        throw new Error('Escritório, usuário ou senha incorretos.');
+      }
       throw new Error(text);
     }
 

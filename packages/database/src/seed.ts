@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import * as crypto from 'crypto';
 import { config } from 'dotenv';
 import { resolve } from 'path';
 
@@ -10,8 +11,62 @@ config({ path: resolve(__dirname, '../../../apps/api/.env') });
 
 const prisma = new PrismaClient();
 
+// Espelha apps/api/src/escritorio/escritorio.service.ts#generateLicenseKey
+const MASTER_SECRET = 'gestoradv-license-master-secret-2026';
+const LICENSE_DURATION_DAYS = 30;
+
+function generateLicenseKey(cnpj: string, date: Date): string {
+  const clean = cnpj.replace(/\D/g, '');
+  const period = date.toISOString().slice(0, 7);
+  const payload = `${MASTER_SECRET}:${clean}:${period}`;
+  const hash = crypto.createHmac('sha256', MASTER_SECRET).update(payload).digest('hex');
+  const key = hash.substring(0, 32).toUpperCase();
+  return `GA-${key.slice(0, 8)}-${key.slice(8, 16)}-${key.slice(16, 24)}-${key.slice(24, 32)}`;
+}
+
 async function main() {
   console.log('Seeding database...');
+
+  const escritorioCnpj = '00.000.000/0001-00';
+  const now = new Date();
+  const validUntil = new Date();
+  validUntil.setDate(validUntil.getDate() + LICENSE_DURATION_DAYS);
+  const licencaChave = generateLicenseKey(escritorioCnpj, now);
+
+  const licencaFields = {
+    licencaChave,
+    licencaValidade: validUntil,
+    licencaPlano: 'professional',
+    licencaAtiva: true,
+    licencaUltimaValid: now,
+  };
+
+  const escritorioExistente = await prisma.escritorio.findUnique({
+    where: { cnpj: escritorioCnpj },
+  });
+  if (escritorioExistente) {
+    await prisma.escritorio.update({
+      where: { cnpj: escritorioCnpj },
+      data: {
+        autoAtribuicaoAtiva: true,
+        slaPrimeiroToqueMinutos: 30,
+        ...licencaFields,
+      },
+    });
+  } else {
+    await prisma.escritorio.create({
+      data: {
+        cnpj: escritorioCnpj,
+        razaoSocial: 'GestorAdv Advocacia LTDA',
+        nomeFantasia: 'GestorAdv Demo',
+        email: 'contato@gestoradv.com',
+        telefone: '+551133334444',
+        autoAtribuicaoAtiva: true,
+        slaPrimeiroToqueMinutos: 30,
+        ...licencaFields,
+      },
+    });
+  }
 
   const hashedPassword = await bcrypt.hash('Admin@2026', 12);
   const advPassword = await bcrypt.hash('Adv@2026', 12);
@@ -44,6 +99,7 @@ async function main() {
       oabState: 'SP',
       phone: '+5511999990001',
       isActive: true,
+      especialidades: ['TRABALHISTA', 'CIVIL', 'CONSUMIDOR'],
     },
     create: {
       email: 'joao.silva@gestoradv.com',
@@ -53,6 +109,7 @@ async function main() {
       oabNumber: '12345',
       oabState: 'SP',
       phone: '+5511999990001',
+      especialidades: ['TRABALHISTA', 'CIVIL', 'CONSUMIDOR'],
     },
   });
 
@@ -66,6 +123,7 @@ async function main() {
       oabState: 'RJ',
       phone: '+5521999990002',
       isActive: true,
+      especialidades: ['FAMILIA', 'PENAL', 'PREVIDENCIARIO'],
     },
     create: {
       email: 'maria.santos@gestoradv.com',
@@ -75,6 +133,7 @@ async function main() {
       oabNumber: '67890',
       oabState: 'RJ',
       phone: '+5521999990002',
+      especialidades: ['FAMILIA', 'PENAL', 'PREVIDENCIARIO'],
     },
   });
 
@@ -170,7 +229,6 @@ async function main() {
     processos.push(processo);
   }
 
-  const now = new Date();
   const daysFromNow = (d: number) => {
     const date = new Date(now);
     date.setDate(date.getDate() + d);

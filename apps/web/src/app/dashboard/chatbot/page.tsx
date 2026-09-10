@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { Suspense, useState, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
 import { cn, formatDateTime } from '@/lib/utils';
 
@@ -17,9 +17,14 @@ interface Atendimento {
   areaDetectada?: string;
   urgencia: number;
   complexidade?: string;
+  viabilidade?: number;
+  valorEstimado?: string | number | null;
+  motivoPerda?: string;
+  slaFirstResponseAt?: string | null;
   status: string;
   clienteId?: string;
   responsavelId?: string;
+  processoId?: string;
   responsavel?: { id: string; name: string };
   cliente?: { user: { id: string; name: string; email: string } };
   _count?: { mensagens: number };
@@ -53,6 +58,9 @@ const STATUS_MAP: Record<string, { label: string; color: string }> = {
   NOVO: { label: 'Novo', color: 'bg-blue-100 text-blue-800' },
   EM_ATENDIMENTO: { label: 'Em Atendimento', color: 'bg-yellow-100 text-yellow-800' },
   RESPONDIDO: { label: 'Respondido', color: 'bg-green-100 text-green-800' },
+  EM_ANALISE: { label: 'Em Análise', color: 'bg-indigo-100 text-indigo-800' },
+  CONVERTIDO: { label: 'Convertido', color: 'bg-emerald-100 text-emerald-800' },
+  PERDIDO: { label: 'Perdido', color: 'bg-rose-100 text-rose-800' },
   ENCERRADO: { label: 'Encerrado', color: 'bg-gray-100 text-gray-600' },
   ARQUIVADO: { label: 'Arquivado', color: 'bg-gray-100 text-gray-400' },
 };
@@ -64,12 +72,61 @@ const CANAL_ICON: Record<string, string> = {
   TELEFONE: '📞',
 };
 
-export default function AtendimentosPage() {
+const AREA_OPTIONS = [
+  'TRABALHISTA',
+  'CIVIL',
+  'PENAL',
+  'FAMILIA',
+  'TRIBUTARIO',
+  'PREVIDENCIARIO',
+  'ADMINISTRATIVO',
+  'EMPRESARIAL',
+  'CONSUMIDOR',
+  'AMBIENTAL',
+  'OUTRO',
+];
+
+const AREA_LABEL_TO_ENUM: Record<string, string> = {
+  trabalhista: 'TRABALHISTA',
+  civil: 'CIVIL',
+  penal: 'PENAL',
+  familia: 'FAMILIA',
+  família: 'FAMILIA',
+  tributario: 'TRIBUTARIO',
+  tributário: 'TRIBUTARIO',
+  previdenciario: 'PREVIDENCIARIO',
+  previdenciário: 'PREVIDENCIARIO',
+  administrativo: 'ADMINISTRATIVO',
+  empresarial: 'EMPRESARIAL',
+  consumidor: 'CONSUMIDOR',
+  ambiental: 'AMBIENTAL',
+  outro: 'OUTRO',
+};
+
+function areaToEnum(area?: string | null): string | null {
+  if (!area) return null;
+  const norm = area.toString().toLowerCase().trim();
+  return AREA_LABEL_TO_ENUM[norm] || null;
+}
+
+interface ClienteOption {
+  id: string;
+  cpfCnpj?: string;
+  user?: { name: string; email?: string };
+}
+
+function AtendimentosPageInner() {
+  const searchParams = useSearchParams();
   const [tab, setTab] = useState<'inbox' | 'pecas'>('inbox');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState('');
   const [page, setPage] = useState(1);
   const qc = useQueryClient();
+
+  useEffect(() => {
+    const status = searchParams.get('status');
+    if (status) setFilterStatus(status);
+  }, [searchParams]);
 
   return (
     <div className="flex h-[calc(100vh-8rem)] flex-col">
@@ -112,6 +169,14 @@ export default function AtendimentosPage() {
   );
 }
 
+export default function AtendimentosPage() {
+  return (
+    <Suspense>
+      <AtendimentosPageInner />
+    </Suspense>
+  );
+}
+
 function InboxView({
   selectedId, setSelectedId, filterStatus, setFilterStatus, page, setPage,
 }: {
@@ -138,7 +203,16 @@ function InboxView({
 
   const statsQuery = useQuery({
     queryKey: ['atendimentos-stats'],
-    queryFn: () => api.get<{ novos: number; emAtendimento: number; respondidos: number; total: number }>('/atendimentos/stats'),
+    queryFn: () =>
+      api.get<{
+        novos: number;
+        emAtendimento: number;
+        respondidos: number;
+        emAnalise: number;
+        convertidos: number;
+        perdidos: number;
+        total: number;
+      }>('/atendimentos/stats'),
     refetchInterval: 15000,
   });
 
@@ -152,10 +226,12 @@ function InboxView({
       <div className="w-[380px] flex flex-col rounded-xl border border-border bg-card overflow-hidden shrink-0">
         {/* Stats */}
         {stats && (
-          <div className="flex gap-2 p-3 border-b border-border text-xs">
+          <div className="flex flex-wrap gap-1.5 p-3 border-b border-border text-xs">
             <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-medium">{stats.novos} Novos</span>
             <span className="bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full font-medium">{stats.emAtendimento} Em atend.</span>
-            <span className="bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">{stats.respondidos} Respondidos</span>
+            <span className="bg-indigo-100 text-indigo-700 px-2 py-1 rounded-full font-medium">{stats.emAnalise} Análise</span>
+            <span className="bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full font-medium">{stats.convertidos} Convertidos</span>
+            <span className="bg-rose-100 text-rose-700 px-2 py-1 rounded-full font-medium">{stats.perdidos} Perdidos</span>
           </div>
         )}
 
@@ -170,6 +246,9 @@ function InboxView({
             <option value="NOVO">Novos</option>
             <option value="EM_ATENDIMENTO">Em Atendimento</option>
             <option value="RESPONDIDO">Respondidos</option>
+            <option value="EM_ANALISE">Em Análise</option>
+            <option value="CONVERTIDO">Convertidos</option>
+            <option value="PERDIDO">Perdidos</option>
             <option value="ENCERRADO">Encerrados</option>
             <option value="ARQUIVADO">Arquivados</option>
           </select>
@@ -191,11 +270,14 @@ function InboxView({
                   selectedId === a.id && 'bg-primary/5 border-l-4 border-l-primary',
                 )}
               >
-                <div className="flex items-center gap-2 mb-1">
+                <div className="flex items-center gap-1.5 mb-1">
                   <span className="text-base">{CANAL_ICON[a.canal] || '💬'}</span>
                   <span className="font-medium text-sm truncate flex-1">{a.nome}</span>
-                  {a.urgencia >= 7 && (
-                    <span className="text-xs bg-red-100 text-red-700 px-1.5 py-0.5 rounded font-medium">Urgente</span>
+                  {a.urgencia >= 8 && (
+                    <span className="text-[10px] bg-red-100 text-red-700 px-1.5 py-0.5 rounded font-medium">URGENTE</span>
+                  )}
+                  {!a.clienteId && (
+                    <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-medium">novo</span>
                   )}
                 </div>
                 <div className="text-xs text-muted-foreground truncate mb-1">
@@ -258,6 +340,10 @@ function AtendimentoDetail({ id, onClose }: { id: string; onClose: () => void })
   const router = useRouter();
   const [resposta, setResposta] = useState('');
   const [sugestaoLoading, setSugestaoLoading] = useState(false);
+  const [showConverter, setShowConverter] = useState(false);
+  const [showPromoverLead, setShowPromoverLead] = useState(false);
+  const [showVincularCliente, setShowVincularCliente] = useState(false);
+  const [showMarcarPerdido, setShowMarcarPerdido] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const detailQuery = useQuery({
@@ -317,6 +403,59 @@ function AtendimentoDetail({ id, onClose }: { id: string; onClose: () => void })
     },
   });
 
+  const vincularClienteMut = useMutation({
+    mutationFn: (clienteId: string) =>
+      api.patch(`/atendimentos/${id}/vincular-cliente`, { clienteId }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['atendimento', id] });
+      qc.invalidateQueries({ queryKey: ['atendimentos'] });
+      setShowVincularCliente(false);
+    },
+  });
+
+  const promoverLeadMut = useMutation({
+    mutationFn: (data: { nome: string; email: string; cpf?: string; telefone?: string }) =>
+      api.post(`/atendimentos/${id}/promover-lead`, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['atendimento', id] });
+      qc.invalidateQueries({ queryKey: ['atendimentos'] });
+      setShowPromoverLead(false);
+    },
+  });
+
+  const marcarPerdidoMut = useMutation({
+    mutationFn: (motivo: string) =>
+      api.patch(`/atendimentos/${id}/marcar-perdido`, { motivo }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['atendimento', id] });
+      qc.invalidateQueries({ queryKey: ['atendimentos'] });
+      qc.invalidateQueries({ queryKey: ['atendimentos-stats'] });
+      setShowMarcarPerdido(false);
+    },
+  });
+
+  const converterMut = useMutation({
+    mutationFn: (data: {
+      numero: string;
+      tribunal: string;
+      vara?: string;
+      comarca?: string;
+      area?: string;
+      valorCausa?: number;
+      advogadoId?: string;
+      descricao?: string;
+    }) => api.post<{ processo: { id: string; numero: string } }>(`/atendimentos/${id}/converter-em-processo`, data),
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ['atendimento', id] });
+      qc.invalidateQueries({ queryKey: ['atendimentos'] });
+      qc.invalidateQueries({ queryKey: ['atendimentos-stats'] });
+      setShowConverter(false);
+      if (res?.processo?.id) {
+        router.push(`/dashboard/processos/${res.processo.id}`);
+      }
+    },
+  });
+
   async function handleSugerir() {
     setSugestaoLoading(true);
     try {
@@ -336,12 +475,30 @@ function AtendimentoDetail({ id, onClose }: { id: string; onClose: () => void })
       {/* Header */}
       <div className="p-4 border-b border-border">
         <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <span className="text-lg">{CANAL_ICON[atendimento.canal] || '💬'}</span>
             <h2 className="text-lg font-bold">{atendimento.nome}</h2>
             <span className={cn('text-xs px-2 py-0.5 rounded font-medium', STATUS_MAP[atendimento.status]?.color)}>
               {STATUS_MAP[atendimento.status]?.label}
             </span>
+            {atendimento.urgencia >= 8 && (
+              <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded font-medium animate-pulse">
+                URGENTE
+              </span>
+            )}
+            {!atendimento.clienteId && (
+              <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded font-medium">
+                Cliente novo
+              </span>
+            )}
+            {atendimento.processoId && (
+              <button
+                onClick={() => router.push(`/dashboard/processos/${atendimento.processoId}`)}
+                className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded font-medium hover:bg-emerald-200"
+              >
+                Ver processo
+              </button>
+            )}
           </div>
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground text-sm">✕</button>
         </div>
@@ -377,7 +534,7 @@ function AtendimentoDetail({ id, onClose }: { id: string; onClose: () => void })
             ))}
           </select>
 
-          {atendimento.status !== 'ENCERRADO' && (
+          {atendimento.status !== 'ENCERRADO' && atendimento.status !== 'CONVERTIDO' && atendimento.status !== 'PERDIDO' && (
             <button
               onClick={() => statusMut.mutate('ENCERRADO')}
               className="text-xs bg-gray-100 text-gray-700 px-3 py-1 rounded hover:bg-gray-200"
@@ -390,16 +547,31 @@ function AtendimentoDetail({ id, onClose }: { id: string; onClose: () => void })
             >Arquivar</button>
           )}
 
-          {atendimento.clienteId && (
+          {atendimento.status !== 'PERDIDO' && atendimento.status !== 'CONVERTIDO' && atendimento.status !== 'ARQUIVADO' && (
             <button
-              onClick={() => {
-                const params = new URLSearchParams();
-                params.set('clienteId', atendimento.clienteId!);
-                if (atendimento.responsavelId) params.set('advogadoId', atendimento.responsavelId);
-                router.push(`/dashboard/processos?${params.toString()}`);
-              }}
+              onClick={() => setShowMarcarPerdido(true)}
+              className="text-xs bg-rose-50 text-rose-700 px-3 py-1 rounded hover:bg-rose-100"
+            >Marcar como perdido</button>
+          )}
+
+          {!atendimento.clienteId && (
+            <>
+              <button
+                onClick={() => setShowVincularCliente(true)}
+                className="text-xs bg-amber-50 text-amber-800 px-3 py-1 rounded hover:bg-amber-100 font-medium"
+              >Vincular cliente</button>
+              <button
+                onClick={() => setShowPromoverLead(true)}
+                className="text-xs bg-amber-50 text-amber-800 px-3 py-1 rounded hover:bg-amber-100 font-medium"
+              >Cadastrar novo cliente</button>
+            </>
+          )}
+
+          {atendimento.clienteId && atendimento.status !== 'CONVERTIDO' && (
+            <button
+              onClick={() => setShowConverter(true)}
               className="text-xs bg-primary/10 text-primary px-3 py-1 rounded hover:bg-primary/20 font-medium"
-            >Criar Processo</button>
+            >Converter em Processo</button>
           )}
         </div>
 
@@ -463,7 +635,7 @@ function AtendimentoDetail({ id, onClose }: { id: string; onClose: () => void })
       </div>
 
       {/* Response area */}
-      {atendimento.status !== 'ENCERRADO' && atendimento.status !== 'ARQUIVADO' && (
+      {atendimento.status !== 'ENCERRADO' && atendimento.status !== 'ARQUIVADO' && atendimento.status !== 'CONVERTIDO' && atendimento.status !== 'PERDIDO' && (
         <div className="p-4 border-t border-border">
           <div className="flex gap-2 mb-2">
             <button
@@ -492,6 +664,423 @@ function AtendimentoDetail({ id, onClose }: { id: string; onClose: () => void })
           </div>
         </div>
       )}
+
+      {showConverter && (
+        <ConverterModal
+          atendimento={atendimento}
+          advogados={advogados}
+          onClose={() => setShowConverter(false)}
+          onSubmit={(data) => converterMut.mutate(data)}
+          loading={converterMut.isPending}
+          error={(converterMut.error as any)?.message}
+        />
+      )}
+      {showVincularCliente && (
+        <VincularClienteModal
+          onClose={() => setShowVincularCliente(false)}
+          onSelect={(clienteId) => vincularClienteMut.mutate(clienteId)}
+          loading={vincularClienteMut.isPending}
+          error={(vincularClienteMut.error as any)?.message}
+        />
+      )}
+      {showPromoverLead && (
+        <PromoverLeadModal
+          telefone={atendimento.telefone}
+          email={atendimento.email}
+          nomeSugerido={atendimento.nome}
+          onClose={() => setShowPromoverLead(false)}
+          onSubmit={(data) => promoverLeadMut.mutate(data)}
+          loading={promoverLeadMut.isPending}
+          error={(promoverLeadMut.error as any)?.message}
+        />
+      )}
+      {showMarcarPerdido && (
+        <MarcarPerdidoModal
+          onClose={() => setShowMarcarPerdido(false)}
+          onSubmit={(motivo) => marcarPerdidoMut.mutate(motivo)}
+          loading={marcarPerdidoMut.isPending}
+          error={(marcarPerdidoMut.error as any)?.message}
+        />
+      )}
+    </div>
+  );
+}
+
+function ConverterModal({
+  atendimento,
+  advogados,
+  onClose,
+  onSubmit,
+  loading,
+  error,
+}: {
+  atendimento: Atendimento;
+  advogados: User[];
+  onClose: () => void;
+  onSubmit: (data: {
+    numero: string;
+    tribunal: string;
+    vara?: string;
+    comarca?: string;
+    area?: string;
+    valorCausa?: number;
+    advogadoId?: string;
+    descricao?: string;
+  }) => void;
+  loading: boolean;
+  error?: string;
+}) {
+  const areaPre = areaToEnum(atendimento.areaDetectada) || '';
+  const valorPre =
+    atendimento.valorEstimado != null ? String(atendimento.valorEstimado) : '';
+  const descricaoPre = atendimento.mensagemOriginal?.slice(0, 500) || '';
+
+  const [numero, setNumero] = useState('');
+  const [tribunal, setTribunal] = useState('');
+  const [vara, setVara] = useState('');
+  const [comarca, setComarca] = useState('');
+  const [area, setArea] = useState(areaPre || 'OUTRO');
+  const [valorCausa, setValorCausa] = useState(valorPre);
+  const [advogadoId, setAdvogadoId] = useState(atendimento.responsavelId || '');
+  const [descricao, setDescricao] = useState(descricaoPre);
+
+  function submit() {
+    if (!numero.trim() || !tribunal.trim()) return;
+    onSubmit({
+      numero: numero.trim(),
+      tribunal: tribunal.trim(),
+      vara: vara.trim() || undefined,
+      comarca: comarca.trim() || undefined,
+      area: area || undefined,
+      valorCausa: valorCausa ? Number(valorCausa) : undefined,
+      advogadoId: advogadoId || undefined,
+      descricao: descricao.trim() || undefined,
+    });
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <div className="bg-card rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+        <div className="flex items-center justify-between p-4 border-b border-border">
+          <h3 className="text-lg font-bold">Converter atendimento em processo</h3>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">✕</button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-0 overflow-y-auto">
+          <div className="md:col-span-2 p-4 bg-muted/30 border-r border-border space-y-2 text-sm">
+            <h4 className="font-semibold mb-2">Resumo do atendimento</h4>
+            <div><span className="text-muted-foreground">Nome:</span> {atendimento.nome}</div>
+            {atendimento.telefone && <div><span className="text-muted-foreground">Telefone:</span> {atendimento.telefone}</div>}
+            {atendimento.email && <div><span className="text-muted-foreground">Email:</span> {atendimento.email}</div>}
+            <div><span className="text-muted-foreground">Canal:</span> {atendimento.canal}</div>
+            {atendimento.areaDetectada && (
+              <div><span className="text-muted-foreground">Área detectada:</span> <span className="font-medium">{atendimento.areaDetectada}</span></div>
+            )}
+            {typeof atendimento.urgencia === 'number' && (
+              <div><span className="text-muted-foreground">Urgência:</span> {atendimento.urgencia}/10</div>
+            )}
+            {atendimento.complexidade && (
+              <div><span className="text-muted-foreground">Complexidade:</span> {atendimento.complexidade}</div>
+            )}
+            <div className="pt-2 border-t border-border mt-2">
+              <p className="text-muted-foreground text-xs mb-1">Mensagem original:</p>
+              <p className="whitespace-pre-wrap text-xs leading-relaxed">{atendimento.mensagemOriginal}</p>
+            </div>
+          </div>
+
+          <div className="md:col-span-3 p-4 space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium mb-1">Número CNJ *</label>
+                <input
+                  value={numero}
+                  onChange={(e) => setNumero(e.target.value)}
+                  placeholder="0000000-00.0000.0.00.0000"
+                  className="w-full text-sm border border-border rounded px-2 py-1.5 bg-background"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium mb-1">Tribunal *</label>
+                <input
+                  value={tribunal}
+                  onChange={(e) => setTribunal(e.target.value)}
+                  placeholder="TJSP, TRT1..."
+                  className="w-full text-sm border border-border rounded px-2 py-1.5 bg-background"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium mb-1">Vara</label>
+                <input
+                  value={vara}
+                  onChange={(e) => setVara(e.target.value)}
+                  className="w-full text-sm border border-border rounded px-2 py-1.5 bg-background"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium mb-1">Comarca</label>
+                <input
+                  value={comarca}
+                  onChange={(e) => setComarca(e.target.value)}
+                  className="w-full text-sm border border-border rounded px-2 py-1.5 bg-background"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium mb-1">Área</label>
+                <select
+                  value={area}
+                  onChange={(e) => setArea(e.target.value)}
+                  className="w-full text-sm border border-border rounded px-2 py-1.5 bg-background"
+                >
+                  {AREA_OPTIONS.map((a) => (
+                    <option key={a} value={a}>{a}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium mb-1">Valor da causa (R$)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={valorCausa}
+                  onChange={(e) => setValorCausa(e.target.value)}
+                  className="w-full text-sm border border-border rounded px-2 py-1.5 bg-background"
+                />
+              </div>
+              <div className="col-span-2">
+                <label className="block text-xs font-medium mb-1">Advogado responsável</label>
+                <select
+                  value={advogadoId}
+                  onChange={(e) => setAdvogadoId(e.target.value)}
+                  className="w-full text-sm border border-border rounded px-2 py-1.5 bg-background"
+                >
+                  <option value="">Selecione...</option>
+                  {advogados.map((u) => (
+                    <option key={u.id} value={u.id}>{u.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="col-span-2">
+                <label className="block text-xs font-medium mb-1">Descrição inicial</label>
+                <textarea
+                  rows={4}
+                  value={descricao}
+                  onChange={(e) => setDescricao(e.target.value)}
+                  className="w-full text-sm border border-border rounded px-2 py-1.5 bg-background resize-none"
+                />
+              </div>
+            </div>
+
+            {error && <p className="text-xs text-red-600">{error}</p>}
+          </div>
+        </div>
+
+        <div className="flex items-center justify-end gap-2 p-4 border-t border-border">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-sm rounded border border-border hover:bg-muted"
+          >Cancelar</button>
+          <button
+            onClick={submit}
+            disabled={loading || !numero.trim() || !tribunal.trim()}
+            className="px-4 py-2 text-sm rounded bg-primary text-white font-medium hover:bg-blue-700 disabled:opacity-50"
+          >
+            {loading ? 'Convertendo...' : 'Converter em Processo'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function VincularClienteModal({
+  onClose,
+  onSelect,
+  loading,
+  error,
+}: {
+  onClose: () => void;
+  onSelect: (clienteId: string) => void;
+  loading: boolean;
+  error?: string;
+}) {
+  const [search, setSearch] = useState('');
+
+  const clientesQuery = useQuery({
+    queryKey: ['clientes-search', search],
+    queryFn: () =>
+      api.get<{ data: ClienteOption[] } | ClienteOption[]>(
+        `/clients?limit=20&search=${encodeURIComponent(search)}`,
+      ),
+  });
+
+  const lista: ClienteOption[] = Array.isArray(clientesQuery.data)
+    ? clientesQuery.data
+    : clientesQuery.data?.data || [];
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <div className="bg-card rounded-xl shadow-2xl max-w-lg w-full max-h-[80vh] overflow-hidden flex flex-col">
+        <div className="flex items-center justify-between p-4 border-b border-border">
+          <h3 className="text-lg font-bold">Vincular cliente existente</h3>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">✕</button>
+        </div>
+        <div className="p-4 space-y-3">
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar por nome, email, CPF..."
+            className="w-full text-sm border border-border rounded px-3 py-2 bg-background"
+          />
+          <div className="max-h-72 overflow-y-auto border border-border rounded">
+            {lista.length === 0 ? (
+              <p className="p-3 text-sm text-muted-foreground text-center">Nenhum cliente encontrado.</p>
+            ) : (
+              lista.map((c) => (
+                <button
+                  key={c.id}
+                  onClick={() => onSelect(c.id)}
+                  disabled={loading}
+                  className="w-full text-left p-3 border-b last:border-0 border-border hover:bg-muted/50 disabled:opacity-50"
+                >
+                  <div className="text-sm font-medium">{c.user?.name || '(sem nome)'}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {c.user?.email}{c.cpfCnpj ? ` · ${c.cpfCnpj}` : ''}
+                  </div>
+                </button>
+              ))
+            )}
+          </div>
+          {error && <p className="text-xs text-red-600">{error}</p>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PromoverLeadModal({
+  telefone,
+  email,
+  nomeSugerido,
+  onClose,
+  onSubmit,
+  loading,
+  error,
+}: {
+  telefone?: string;
+  email?: string;
+  nomeSugerido?: string;
+  onClose: () => void;
+  onSubmit: (data: { nome: string; email: string; cpf?: string; telefone?: string }) => void;
+  loading: boolean;
+  error?: string;
+}) {
+  const [nome, setNome] = useState(nomeSugerido || '');
+  const [emailValue, setEmailValue] = useState(email || '');
+  const [cpf, setCpf] = useState('');
+  const [tel, setTel] = useState(telefone || '');
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <div className="bg-card rounded-xl shadow-2xl max-w-md w-full overflow-hidden">
+        <div className="flex items-center justify-between p-4 border-b border-border">
+          <h3 className="text-lg font-bold">Cadastrar novo cliente</h3>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">✕</button>
+        </div>
+        <div className="p-4 space-y-3">
+          <div>
+            <label className="block text-xs font-medium mb-1">Nome completo *</label>
+            <input
+              value={nome}
+              onChange={(e) => setNome(e.target.value)}
+              className="w-full text-sm border border-border rounded px-2 py-1.5 bg-background"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium mb-1">Email *</label>
+            <input
+              value={emailValue}
+              onChange={(e) => setEmailValue(e.target.value)}
+              className="w-full text-sm border border-border rounded px-2 py-1.5 bg-background"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium mb-1">CPF</label>
+            <input
+              value={cpf}
+              onChange={(e) => setCpf(e.target.value)}
+              className="w-full text-sm border border-border rounded px-2 py-1.5 bg-background"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium mb-1">Telefone</label>
+            <input
+              value={tel}
+              onChange={(e) => setTel(e.target.value)}
+              className="w-full text-sm border border-border rounded px-2 py-1.5 bg-background"
+            />
+          </div>
+          {error && <p className="text-xs text-red-600">{error}</p>}
+        </div>
+        <div className="flex items-center justify-end gap-2 p-4 border-t border-border">
+          <button onClick={onClose} className="px-4 py-2 text-sm rounded border border-border hover:bg-muted">Cancelar</button>
+          <button
+            onClick={() => onSubmit({
+              nome: nome.trim(),
+              email: emailValue.trim(),
+              cpf: cpf.trim() || undefined,
+              telefone: tel.trim() || undefined,
+            })}
+            disabled={loading || !nome.trim() || !emailValue.trim()}
+            className="px-4 py-2 text-sm rounded bg-primary text-white font-medium hover:bg-blue-700 disabled:opacity-50"
+          >{loading ? 'Cadastrando...' : 'Cadastrar e vincular'}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MarcarPerdidoModal({
+  onClose,
+  onSubmit,
+  loading,
+  error,
+}: {
+  onClose: () => void;
+  onSubmit: (motivo: string) => void;
+  loading: boolean;
+  error?: string;
+}) {
+  const [motivo, setMotivo] = useState('');
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <div className="bg-card rounded-xl shadow-2xl max-w-md w-full overflow-hidden">
+        <div className="flex items-center justify-between p-4 border-b border-border">
+          <h3 className="text-lg font-bold">Marcar atendimento como perdido</h3>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">✕</button>
+        </div>
+        <div className="p-4 space-y-3">
+          <p className="text-sm text-muted-foreground">
+            Informe o motivo da perda. Esse dado será usado em métricas de funil.
+          </p>
+          <textarea
+            rows={4}
+            value={motivo}
+            onChange={(e) => setMotivo(e.target.value)}
+            placeholder="Ex.: cliente não retornou contato; preferiu outro escritório; honorários acima do desejado..."
+            className="w-full text-sm border border-border rounded px-2 py-1.5 bg-background resize-none"
+          />
+          {error && <p className="text-xs text-red-600">{error}</p>}
+        </div>
+        <div className="flex items-center justify-end gap-2 p-4 border-t border-border">
+          <button onClick={onClose} className="px-4 py-2 text-sm rounded border border-border hover:bg-muted">Cancelar</button>
+          <button
+            onClick={() => motivo.trim() && onSubmit(motivo.trim())}
+            disabled={loading || !motivo.trim()}
+            className="px-4 py-2 text-sm rounded bg-rose-600 text-white font-medium hover:bg-rose-700 disabled:opacity-50"
+          >{loading ? 'Salvando...' : 'Marcar como perdido'}</button>
+        </div>
+      </div>
     </div>
   );
 }

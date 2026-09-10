@@ -2,6 +2,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from './auth.service';
 import { UsersService } from '../users/users.service';
 import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
+import { PrismaService } from '../prisma/prisma.service';
+import { MasterPrismaService } from '../prisma/master-prisma.service';
+import { TenantPrismaService } from '../tenant/tenant-prisma.service';
 import { UnauthorizedException, ConflictException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 
@@ -15,6 +19,7 @@ describe('AuthService', () => {
   beforeEach(async () => {
     usersService = {
       findByEmail: jest.fn(),
+      findByLoginUsername: jest.fn(),
       create: jest.fn(),
     };
     jwtService = {
@@ -26,6 +31,20 @@ describe('AuthService', () => {
         AuthService,
         { provide: UsersService, useValue: usersService },
         { provide: JwtService, useValue: jwtService },
+        { provide: ConfigService, useValue: { get: jest.fn().mockReturnValue('standalone') } },
+        {
+          provide: PrismaService,
+          useValue: {
+            escritorio: {
+              findFirst: jest.fn().mockResolvedValue({
+                nomeFantasia: 'GestorAdv Demo',
+                razaoSocial: 'GestorAdv Advocacia LTDA',
+              }),
+            },
+          },
+        },
+        { provide: MasterPrismaService, useValue: { tenant: { findUnique: jest.fn() } } },
+        { provide: TenantPrismaService, useValue: { getClient: jest.fn() } },
       ],
     }).compile();
 

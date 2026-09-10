@@ -23,7 +23,7 @@ export default function EscritorioPage() {
   });
 
   const [form, setForm] = useState<any>({});
-  const [activeTab, setActiveTab] = useState<'dados' | 'endereco' | 'profissional' | 'bancario' | 'licenca' | 'alertas' | 'integracoes'>('dados');
+  const [activeTab, setActiveTab] = useState<'dados' | 'endereco' | 'profissional' | 'bancario' | 'licenca' | 'alertas' | 'integracoes' | 'conhecimento'>('dados');
 
   useEffect(() => {
     if (escritorio) setForm(escritorio);
@@ -61,6 +61,7 @@ export default function EscritorioPage() {
     { key: 'bancario', label: 'Dados Bancários' },
     { key: 'licenca', label: 'Licença' },
     { key: 'integracoes', label: 'Integrações' },
+    { key: 'conhecimento', label: 'Base de Conhecimento' },
     { key: 'alertas', label: 'Alertas' },
   ] as const;
 
@@ -368,9 +369,11 @@ export default function EscritorioPage() {
 
         {activeTab === 'integracoes' && <IntegracoesSection isAdmin={isAdmin} />}
 
+        {activeTab === 'conhecimento' && <KnowledgeBaseSection isAdmin={isAdmin} />}
+
         {activeTab === 'alertas' && <AlertPreferencesSection />}
 
-        {activeTab !== 'licenca' && activeTab !== 'alertas' && activeTab !== 'integracoes' && isAdmin && (
+        {activeTab !== 'licenca' && activeTab !== 'alertas' && activeTab !== 'integracoes' && activeTab !== 'conhecimento' && isAdmin && (
           <div className="mt-6 flex justify-end border-t border-border pt-4">
             <button
               onClick={save}
@@ -403,6 +406,12 @@ function IntegracoesSection({ isAdmin }: { isAdmin: boolean }) {
     datajudApiKey: '',
     proxyUrl: '',
     twocaptchaApiKey: '',
+    aiProvider: 'anthropic',
+    aiModel: '',
+    aiRagEnabled: true,
+    aiToolsEnabled: true,
+    aiSystemPrompt: '',
+    ollamaBaseUrl: '',
   });
 
   const [dirty, setDirty] = useState(false);
@@ -428,10 +437,24 @@ function IntegracoesSection({ isAdmin }: { isAdmin: boolean }) {
     setShowTokens((prev) => ({ ...prev, [field]: !prev[field] }));
   };
 
+  useEffect(() => {
+    if (integracoes?.ai) {
+      setForm((prev) => ({
+        ...prev,
+        aiProvider: integracoes.ai.provider || 'anthropic',
+        aiModel: integracoes.ai.model || '',
+        aiRagEnabled: integracoes.ai.ragEnabled ?? true,
+        aiToolsEnabled: integracoes.ai.toolsEnabled ?? true,
+        aiSystemPrompt: integracoes.ai.systemPrompt || '',
+        ollamaBaseUrl: integracoes.ai.ollamaBaseUrl || '',
+      }));
+    }
+  }, [integracoes]);
+
   const handleSave = () => {
-    const payload: Record<string, string | null> = {};
+    const payload: Record<string, string | boolean | null> = {};
     for (const [key, value] of Object.entries(form)) {
-      if (value) payload[key] = value;
+      if (value !== '' && value !== null && value !== undefined) payload[key] = value as string | boolean;
     }
     saveMutation.mutate(payload);
   };
@@ -604,6 +627,77 @@ function IntegracoesSection({ isAdmin }: { isAdmin: boolean }) {
         </div>
       </div>
 
+      {/* IA / LLM */}
+      <div className="rounded-lg border border-border p-5">
+        <h3 className="text-base font-semibold text-foreground mb-4">Inteligência Artificial</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="mb-1.5 block text-sm font-medium">Provider</label>
+            <select
+              value={form.aiProvider || integracoes?.ai?.provider || 'anthropic'}
+              onChange={(e) => updateField('aiProvider', e.target.value)}
+              className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+              disabled={!isAdmin}
+            >
+              <option value="anthropic">Anthropic (Claude)</option>
+              <option value="openai">OpenAI</option>
+              <option value="ollama">Ollama (local)</option>
+            </select>
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium">Modelo (opcional)</label>
+            <input
+              value={form.aiModel || ''}
+              onChange={(e) => updateField('aiModel', e.target.value)}
+              className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+              placeholder="ex: claude-sonnet-4-20250514"
+              disabled={!isAdmin}
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium">URL Ollama</label>
+            <input
+              value={form.ollamaBaseUrl || ''}
+              onChange={(e) => updateField('ollamaBaseUrl', e.target.value)}
+              className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm font-mono"
+              placeholder="http://localhost:11434"
+              disabled={!isAdmin}
+            />
+          </div>
+          <div className="flex flex-col gap-3 justify-center">
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={form.aiRagEnabled ?? integracoes?.ai?.ragEnabled ?? true}
+                onChange={(e) => { setForm((p) => ({ ...p, aiRagEnabled: e.target.checked })); setDirty(true); }}
+                disabled={!isAdmin}
+              />
+              RAG habilitado (FAQ + documentos)
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={form.aiToolsEnabled ?? integracoes?.ai?.toolsEnabled ?? true}
+                onChange={(e) => { setForm((p) => ({ ...p, aiToolsEnabled: e.target.checked })); setDirty(true); }}
+                disabled={!isAdmin}
+              />
+              Agent com tools (WhatsApp)
+            </label>
+          </div>
+        </div>
+        <div className="mt-4">
+          <label className="mb-1.5 block text-sm font-medium">Prompt do sistema (opcional)</label>
+          <textarea
+            value={form.aiSystemPrompt || ''}
+            onChange={(e) => updateField('aiSystemPrompt', e.target.value)}
+            rows={3}
+            className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+            placeholder="Instruções adicionais para o assistente virtual..."
+            disabled={!isAdmin}
+          />
+        </div>
+      </div>
+
       {/* Botão Salvar */}
       {isAdmin && dirty && (
         <div className="flex justify-end border-t border-border pt-4">
@@ -616,6 +710,78 @@ function IntegracoesSection({ isAdmin }: { isAdmin: boolean }) {
           </button>
         </div>
       )}
+    </div>
+  );
+}
+
+function KnowledgeBaseSection({ isAdmin }: { isAdmin: boolean }) {
+  const qc = useQueryClient();
+  const { data: faqs, isLoading } = useQuery({
+    queryKey: ['knowledge-faqs'],
+    queryFn: () => api.get<any[]>('/knowledge/faqs'),
+  });
+  const [pergunta, setPergunta] = useState('');
+  const [resposta, setResposta] = useState('');
+  const [categoria, setCategoria] = useState('geral');
+
+  const createMutation = useMutation({
+    mutationFn: () => api.post('/knowledge/faqs', { pergunta, resposta, categoria }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['knowledge-faqs'] });
+      setPergunta('');
+      setResposta('');
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => api.delete(`/knowledge/faqs/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['knowledge-faqs'] }),
+  });
+
+  if (isLoading) return <p className="text-sm text-muted-foreground">Carregando FAQs...</p>;
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-lg font-semibold">Base de Conhecimento</h2>
+        <p className="text-sm text-muted-foreground mt-1">
+          FAQs usadas pelo bot WhatsApp, sugestão de resposta e RAG. Requer OPENAI_API_KEY para embeddings.
+        </p>
+      </div>
+
+      {isAdmin && (
+        <div className="rounded-lg border border-border p-4 space-y-3">
+          <h3 className="text-sm font-semibold">Nova FAQ</h3>
+          <input value={categoria} onChange={(e) => setCategoria(e.target.value)} placeholder="Categoria" className={inputClass} />
+          <input value={pergunta} onChange={(e) => setPergunta(e.target.value)} placeholder="Pergunta" className={inputClass} />
+          <textarea value={resposta} onChange={(e) => setResposta(e.target.value)} placeholder="Resposta" rows={3} className={inputClass} />
+          <button
+            onClick={() => createMutation.mutate()}
+            disabled={!pergunta || !resposta || createMutation.isPending}
+            className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+          >
+            Adicionar FAQ
+          </button>
+        </div>
+      )}
+
+      <div className="space-y-2">
+        {(faqs || []).map((f: any) => (
+          <div key={f.id} className="rounded-lg border border-border p-4">
+            <div className="flex justify-between gap-2">
+              <span className="text-xs text-muted-foreground">{f.categoria}</span>
+              {isAdmin && (
+                <button onClick={() => deleteMutation.mutate(f.id)} className="text-xs text-destructive hover:underline">
+                  Remover
+                </button>
+              )}
+            </div>
+            <p className="font-medium text-sm mt-1">{f.pergunta}</p>
+            <p className="text-sm text-muted-foreground mt-1">{f.resposta}</p>
+          </div>
+        ))}
+        {!faqs?.length && <p className="text-sm text-muted-foreground">Nenhuma FAQ cadastrada. O seed padrão cria 4 FAQs na primeira inicialização.</p>}
+      </div>
     </div>
   );
 }
